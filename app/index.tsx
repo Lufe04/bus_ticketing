@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from "react";
-import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ImageBackground } from "react-native";
+import { View, TouchableOpacity, StyleSheet, Text, Dimensions, SafeAreaView, StatusBar } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 
 // Obtener dimensiones del dispositivo para diseño responsive
@@ -19,29 +19,29 @@ export default function Index() {
   const router = useRouter();
   
   // Datos de los slides con títulos y descripciones
-  const slides: { title: string; description: string; icon: "bus-outline" | "ticket-outline" | "location-outline" | "map-outline"; iconSize: number }[] = [
+  const slides = [
     {
       title: "Bienvenido a Rutiq",
       description: "Tu compañero de viaje en transporte público",
-      icon: 'bus-outline',
-      iconSize: 120
+      icon: 'bus',
+      iconSize: 100
     },
     {
       title: "Compra tus pasajes",
-      description: "Compra tu pasaje de bus con anticipación y sin hacer colas",
-      icon: 'ticket-outline',
+      description: "Compra tu pasaje de bus con anticipación, sin filas ni complicaciones",
+      icon: 'ticket',
       iconSize: 100
     },
     {
       title: "Rastreo en tiempo real",
-      description: "Mira por donde va tu bus para no esperar más tiempo del deseado en el paradero",
-      icon: 'location-outline',
+      description: "Consulta en tiempo real por dónde va tu bus y evita esperas innecesarias en el paradero",
+      icon: 'location',
       iconSize: 100
     },
     {
       title: "Planifica tus rutas",
-      description: "Planea tus rutas para saber que bus agendar",
-      icon: 'map-outline',
+      description: "Planea tus rutas y conoce qué bus tomar",
+      icon: 'map',
       iconSize: 100
     }
   ];
@@ -67,7 +67,7 @@ export default function Index() {
             key={index}
             style={[
               styles.dot,
-              { backgroundColor: index === currentSlide ? COLORS.skyBlue : COLORS.gray }
+              { backgroundColor: index === currentSlide ? COLORS.skyBlue : '#D9D9D9' }
             ]}
           />
         ))}
@@ -75,17 +75,43 @@ export default function Index() {
     );
   };
 
-  return (
-    <View style={styles.container}>
-        <View style={styles.slideContainer}>
-          <View style={styles.iconContainer}>
-            <Ionicons 
-              name={slides[currentSlide].icon} 
-              size={slides[currentSlide].iconSize} 
-              color={COLORS.skyBlue} 
-            />
-          </View>
+  // Función para renderizar el icono correcto
+  const renderIcon = () => {
+    const iconName = slides[currentSlide].icon;
+    let iconComponent;
+    
+    switch(iconName) {
+      case 'bus':
+        iconComponent = <Ionicons name="bus" size={100} color="#000000" />;
+        break;
+      case 'ticket':
+        iconComponent = <Ionicons name="ticket" size={100} color="#000000" />;
+        break;
+      case 'location':
+        iconComponent = <Ionicons name="location" size={100} color="#000000" />;
+        break;
+      case 'map':
+        iconComponent = <Ionicons name="map" size={100} color="#000000" />;
+        break;
+      default:
+        iconComponent = <Ionicons name="help-circle" size={100} color="#000000" />;
+    }
+    
+    return iconComponent;
+  };
 
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      
+      <View style={styles.slideContainer}>
+        {/* Top blue section with icon */}
+        <View style={styles.topSection}>
+          {renderIcon()}
+        </View>
+        
+        {/* Content section */}
+        <View style={styles.contentSection}>
           <Text style={styles.title}>{slides[currentSlide].title}</Text>
           <Text style={styles.description}>{slides[currentSlide].description}</Text>
           
@@ -98,7 +124,7 @@ export default function Index() {
                   <Text style={styles.nextButtonText}>Siguiente</Text>
                 </TouchableOpacity>
                 
-                <TouchableOpacity onPress={navigateToAuth} style={styles.skipContainer}>
+                <TouchableOpacity onPress={navigateToAuth} style={styles.skipButton}>
                   <Text style={styles.skipText}>Omitir</Text>
                 </TouchableOpacity>
               </>
@@ -109,44 +135,38 @@ export default function Index() {
             )}
           </View>
         </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
+    backgroundColor: COLORS.white,
   },
   slideContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
-  iconContainer: {
-    width: width * 0.7,
-    height: height * 0.3,
+  topSection: {
+    backgroundColor: COLORS.skyBlue,
+    height: '45%',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  contentSection: {
+    flex: 1,
+    paddingHorizontal: 30,
+    paddingTop: 40,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
     textAlign: 'center',
     color: COLORS.midnightBlue,
   },
@@ -155,16 +175,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     color: COLORS.gray,
-    paddingHorizontal: 20,
+    lineHeight: 22,
   },
   dotsContainer: {
     flexDirection: 'row',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     marginHorizontal: 5,
   },
   navigationContainer: {
@@ -172,22 +192,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
-    marginBottom: 40,
   },
   nextButton: {
     backgroundColor: COLORS.skyBlue,
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
-    marginRight: 20,
+    marginRight: 15,
+    minWidth: 130,
+    alignItems: 'center',
   },
   nextButtonText: {
     color: COLORS.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
-  skipContainer: {
-    padding: 10,
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    minWidth: 130,
+    alignItems: 'center',
   },
   skipText: {
     color: COLORS.gray,
@@ -195,13 +222,15 @@ const styles = StyleSheet.create({
   },
   getStartedButton: {
     backgroundColor: COLORS.skyBlue,
-    paddingVertical: 15,
-    paddingHorizontal: 60,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
     borderRadius: 25,
+    minWidth: 200,
+    alignItems: 'center',
   },
   getStartedButtonText: {
     color: COLORS.white,
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
