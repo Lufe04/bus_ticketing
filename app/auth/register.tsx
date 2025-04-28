@@ -24,6 +24,9 @@ const COLORS = {
   white: '#FFFFFF'
 };
 
+// Clave de empresa para conductores (hardcoded)
+const DRIVER_KEY = '12345';
+
 export default function Register() {
   const [name, setName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -34,12 +37,11 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [userRole, setUserRole] = useState<'client' | 'driver'>('client');
+  const [driverKey, setDriverKey] = useState('');
   
   const { register } = useAuth();
   const router = useRouter();
-
-  // Use the UserRole type from the context or shared definition
- // Adjust the path as needed
 
   const handleRegister = async () => {
     // Validación básica
@@ -65,20 +67,28 @@ export default function Register() {
       return;
     }
     
+    // Validar clave de conductor si es un driver
+    if (userRole === 'driver') {
+      if (driverKey !== DRIVER_KEY) {
+        Alert.alert('Error', 'La clave de conductor no es válida');
+        return;
+      }
+    }
+    
     setIsLoading(true);
     try {
       const userData: UserData = {
         nombre: name,
         apellido: lastName,
         correo: email,
-        role: 'client'
+        role: userRole
       };
       
       await register(email, password, userData);
       Alert.alert('Éxito', '¡Cuenta creada exitosamente!', [
         {
           text: 'OK',
-          onPress: () => router.replace('/(app)/client')
+          onPress: () => router.replace(userRole === 'client' ? '/(app)/client' : '/(app)/driver')
         }
       ]);
     } catch (error: any) {
@@ -203,6 +213,65 @@ export default function Register() {
             </TouchableOpacity>
           </View>
 
+          {/* User Role Selection */}
+          <Text style={styles.sectionLabel}>Tipo de cuenta:</Text>
+          <View style={styles.roleContainer}>
+            <TouchableOpacity 
+              style={styles.roleOption}
+              onPress={() => setUserRole('client')}
+            >
+              <View style={styles.radioContainer}>
+                <View style={[
+                  styles.radioOuter,
+                  userRole === 'client' && { borderColor: COLORS.skyBlue }
+                ]}>
+                  {userRole === 'client' && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text style={styles.roleText}>Cliente</Text>
+              </View>
+              <Text style={styles.roleDescription}>
+                Usa esta opción si quieres comprar pasajes o planificar viajes
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.roleOption}
+              onPress={() => setUserRole('driver')}
+            >
+              <View style={styles.radioContainer}>
+                <View style={[
+                  styles.radioOuter,
+                  userRole === 'driver' && { borderColor: COLORS.skyBlue }
+                ]}>
+                  {userRole === 'driver' && (
+                    <View style={styles.radioInner} />
+                  )}
+                </View>
+                <Text style={styles.roleText}>Conductor</Text>
+              </View>
+              <Text style={styles.roleDescription}>
+                Usa esta opción si eres conductor de la empresa
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Driver Key Input - Only shown when driver role is selected */}
+          {userRole === 'driver' && (
+            <View style={styles.inputContainer}>
+              <Ionicons name="key-outline" size={20} color={COLORS.gray} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Ingresa la clave de conductor"
+                placeholderTextColor={COLORS.gray}
+                value={driverKey}
+                onChangeText={setDriverKey}
+                secureTextEntry
+              />
+            </View>
+          )}
+
           {/* Remember Me */}
           <TouchableOpacity 
             style={styles.rememberContainer}
@@ -263,6 +332,7 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
+  // Estilos existentes
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
@@ -328,6 +398,57 @@ const styles = StyleSheet.create({
   eyeIcon: {
     padding: 8,
   },
+  
+  // Nuevos estilos para la selección de rol
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.midnightBlue,
+    marginBottom: 10,
+  },
+  roleContainer: {
+    marginBottom: 20,
+  },
+  roleOption: {
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+  },
+  radioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  radioOuter: {
+    height: 20,
+    width: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: COLORS.gray,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  radioInner: {
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.skyBlue,
+  },
+  roleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.midnightBlue,
+  },
+  roleDescription: {
+    fontSize: 14,
+    color: COLORS.gray,
+    marginLeft: 30,
+  },
+  
+  // Estilos existentes continuados
   rememberContainer: {
     flexDirection: 'row',
     alignItems: 'center',

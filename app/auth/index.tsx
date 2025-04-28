@@ -41,8 +41,15 @@ export default function Login() {
     
     setIsLoading(true);
     try {
-      await login(email, password);
-      router.replace('/(app)/client');
+      // Modifica la función login para que devuelva los datos del usuario
+      const userData = await login(email, password);
+      
+      // Usar el rol real del usuario para la navegación
+      if (userData && userData.role === 'driver') {
+        router.replace('/(app)/driver');
+      } else {
+        router.replace('/(app)/client');
+      }
     } catch (error: any) {
       let errorMessage = 'Error al iniciar sesión';
       if (error.code === 'auth/user-not-found') {

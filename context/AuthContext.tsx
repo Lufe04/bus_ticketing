@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean;
   
   // Funciones de autenticación
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserData | null>;
   register: (email: string, password: string, userData: UserData) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -78,21 +78,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Iniciar sesión
-  const login = async (email: string, password: string): Promise<void> => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Obtener datos del usuario desde Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        setUserData({ id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> });
-      }
-    } catch (error) {
-      console.error('Error de inicio de sesión:', error);
-      throw error;
+  // En AuthContext.tsx
+const login = async (email: string, password: string) => {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+    
+    // Obtener datos del usuario desde Firestore
+    const userDoc = await getDoc(doc(db, 'users', user.uid));
+    if (userDoc.exists()) {
+      const userData = { id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> };
+      setUserData(userData);
+      return userData; // Devolver los datos del usuario
     }
-  };
+    return null;
+  } catch (error) {
+    console.error('Error de inicio de sesión:', error);
+    throw error;
+  }
+};
 
   // Registrar nuevo usuario
   const register = async (email: string, password: string, userData: UserData): Promise<void> => {
