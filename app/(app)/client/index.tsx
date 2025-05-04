@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,8 +7,8 @@ import {
   SafeAreaView, 
   ScrollView,
   TextInput,
-  Image,
-  Platform
+  Platform,
+  StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -17,48 +17,53 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 
 // Paleta de colores actualizada
 const COLORS = {
-  primaryBlue: '#131A2E', // Nuevo color azul solicitado
+  primaryBlue: '#131A2E',
   skyBlue: '#20ADF5',
   gray: '#989898',
   lightGray: '#F2F4F5',
   white: '#FFFFFF',
-  yellow: '#FFC107', // Para el rating
+  yellow: '#FFC107',
+  green: '#4CAF50',
+  mediumGray: '#AAAAAA',
 };
 
-const transportOptions: { id: string; icon: 'bus-outline' | 'train-outline' | 'car-outline' | 'airplane-outline' | 'boat-outline'; label: string }[] = [
-  { id: 'bus', icon: 'bus-outline', label: 'Bus' },
-  { id: 'train', icon: 'train-outline', label: 'Train' },
-  { id: 'car', icon: 'car-outline', label: 'Car' },
-  { id: 'airplane', icon: 'airplane-outline', label: 'Airplane' },
-  { id: 'boat', icon: 'boat-outline', label: 'Boat' },
-];
-
 export default function ClientHome() {
-  const { userData, logout } = useAuth();
+  const { userData } = useAuth();
   const router = useRouter();
-
+  
   // Estados para el formulario de búsqueda
-  const [selectedTransport, setSelectedTransport] = useState('bus');
-  const [fromLocation, setFromLocation] = useState({ code: 'CSA', name: 'City, Station or Airport' });
-  const [toLocation, setToLocation] = useState({ code: 'CSA', name: 'City, Station or Airport' });
+  const [from, setFrom] = useState('CSA');
+  const [fromDetails, setFromDetails] = useState('City, Station or Airport');
+  const [to, setTo] = useState('CSA');
+  const [toDetails, setToDetails] = useState('City, Station or Airport');
   const [departureDate, setDepartureDate] = useState(new Date());
   const [returnDate, setReturnDate] = useState<Date | null>(null);
   const [showDeparturePicker, setShowDeparturePicker] = useState(false);
   const [showReturnPicker, setShowReturnPicker] = useState(false);
-  const [passengerCount, setPassengerCount] = useState(1);
-
-  // Función para intercambiar origen y destino
-  const swapLocations = () => {
-    const temp = fromLocation;
-    setFromLocation(toLocation);
-    setToLocation(temp);
-  };
+  const [passengerCount, setPassengerCount] = useState('1');
 
   // Formatear fechas para la visualización
   const formatDate = (date: Date | null) => {
     if (!date) return 'Optional';
-    const options = { day: '2-digit' as const, month: 'short' as const, year: 'numeric' as const };
-    return date.toLocaleDateString('es-ES', options);
+    
+    // Formato personalizado: "28 abr 2025"
+    const day = date.getDate();
+    const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    
+    return `${day} ${month} ${year}`;
+  };
+
+  // Función para intercambiar origen y destino
+  const swapLocations = () => {
+    const tempFrom = from;
+    const tempFromDetails = fromDetails;
+    
+    setFrom(to);
+    setFromDetails(toDetails);
+    setTo(tempFrom);
+    setToDetails(tempFromDetails);
   };
 
   // Manejadores para los date pickers
@@ -76,50 +81,32 @@ export default function ClientHome() {
     }
   };
 
+  // Navegación a otras pantallas
+  const navigateToSearch = () => {
+    router.push('/selectScreen');
+  };
+
+  // Obtener el nombre del usuario desde userData
+  const userName = userData?.nombre || 'Usuario';
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header con ubicación y notificaciones */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.locationLabel}>Location</Text>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location-outline" size={18} color={COLORS.primaryBlue} />
-              <Text style={styles.locationText}>Chicago, USA</Text>
-            </View>
-          </View>
-          
-          <TouchableOpacity style={styles.notificationButton}>
-            <Ionicons name="notifications-outline" size={24} color={COLORS.primaryBlue} />
-          </TouchableOpacity>
-        </View>
-        
-        {/* Opciones de transporte */}
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
+      <View style={styles.header}>
+        <Text style={styles.greeting}>Hola, {userName}</Text>
+        <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
+      </View>
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Opciones de transporte - Solo mostramos Bus activo */}
         <View style={styles.transportContainer}>
-          {transportOptions.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={[
-                styles.transportOption,
-                selectedTransport === option.id && { backgroundColor: COLORS.skyBlue }
-              ]}
-              onPress={() => setSelectedTransport(option.id)}
-            >
-              <Ionicons 
-                name={option.icon} 
-                size={24} 
-                color={selectedTransport === option.id ? COLORS.white : COLORS.primaryBlue} 
-              />
-              <Text 
-                style={[
-                  styles.transportLabel,
-                  selectedTransport === option.id && { color: COLORS.white }
-                ]}
-              >
-                {option.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <View style={styles.transportCircle}>
+            <Ionicons name="bus" size={32} color={COLORS.primaryBlue} />
+            <Text style={styles.transportLabel}>Bus</Text>
+          </View>
         </View>
         
         {/* Formulario de búsqueda */}
@@ -128,10 +115,18 @@ export default function ClientHome() {
           <View style={styles.locationRow}>
             <View style={styles.locationField}>
               <Text style={styles.fieldLabel}>From</Text>
-              <View style={styles.fieldContent}>
-                <Text style={styles.locationCode}>{fromLocation.code}</Text>
-                <Text style={styles.locationName}>{fromLocation.name}</Text>
-              </View>
+              <TextInput
+                style={styles.locationInput}
+                value={from}
+                onChangeText={setFrom}
+                placeholder="CSA"
+              />
+              <TextInput
+                style={styles.locationDetailsInput}
+                value={fromDetails}
+                onChangeText={setFromDetails}
+                placeholder="City, Station or Airport"
+              />
             </View>
             
             <TouchableOpacity style={styles.swapButton} onPress={swapLocations}>
@@ -140,10 +135,18 @@ export default function ClientHome() {
             
             <View style={styles.locationField}>
               <Text style={styles.fieldLabel}>To</Text>
-              <View style={styles.fieldContent}>
-                <Text style={styles.locationCode}>{toLocation.code}</Text>
-                <Text style={styles.locationName}>{toLocation.name}</Text>
-              </View>
+              <TextInput
+                style={styles.locationInput}
+                value={to}
+                onChangeText={setTo}
+                placeholder="CSA"
+              />
+              <TextInput
+                style={styles.locationDetailsInput}
+                value={toDetails}
+                onChangeText={setToDetails}
+                placeholder="City, Station or Airport"
+              />
             </View>
           </View>
           
@@ -155,9 +158,9 @@ export default function ClientHome() {
             >
               <Text style={styles.fieldLabel}>Departing on</Text>
               <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={16} color={COLORS.gray} />
+                <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
                 <Text style={styles.dateText}>
-                  {departureDate ? formatDate(departureDate) : 'Select date'}
+                  {formatDate(departureDate)}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -168,7 +171,7 @@ export default function ClientHome() {
             >
               <Text style={styles.fieldLabel}>Returning on</Text>
               <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={16} color={COLORS.gray} />
+                <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
                 <Text style={styles.dateText}>
                   {returnDate ? formatDate(returnDate) : 'Optional'}
                 </Text>
@@ -199,11 +202,24 @@ export default function ClientHome() {
           
           {/* Pasajeros */}
           <View style={styles.passengersContainer}>
-            <View>
-              <Text style={styles.fieldLabel}>Passengers</Text>
-              <View style={styles.passengersContent}>
-                <Ionicons name="people-outline" size={16} color={COLORS.gray} />
-                <Text style={styles.passengerText}>{passengerCount} Passenger</Text>
+            <View style={styles.passengersContent}>
+              <Text style={styles.fieldLabel}>Pasajeros</Text>
+              <View style={styles.passengerInputContainer}>
+                <Ionicons name="people-outline" size={18} color={COLORS.gray} />
+                <TextInput
+                  style={styles.passengerInput}
+                  value={passengerCount}
+                  onChangeText={(text) => {
+                    // Solo permitir números
+                    const numericValue = text.replace(/[^0-9]/g, '');
+                    setPassengerCount(numericValue || '1');
+                  }}
+                  keyboardType="numeric"
+                  maxLength={2}
+                />
+                <Text style={styles.passengerLabel}>
+                  {parseInt(passengerCount) === 1 ? 'Pasajero' : 'Pasajeros'}
+                </Text>
               </View>
             </View>
             
@@ -213,67 +229,88 @@ export default function ClientHome() {
           </View>
           
           {/* Botón de búsqueda */}
-          <TouchableOpacity style={styles.searchButton}>
-            <Text style={styles.searchButtonText}>Search</Text>
+          <TouchableOpacity style={styles.searchButton} onPress={navigateToSearch}>
+            <Text style={styles.searchButtonText}>Buscar</Text>
           </TouchableOpacity>
         </View>
         
-        {/* Sección de boletos activos */}
+        {/* Sección de tus tiquetes */}
         <View style={styles.ticketsSection}>
-          <View style={styles.ticketHeader}>
-            <Text style={styles.ticketSectionTitle}>Today Active Ticket</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeMoreText}>See More</Text>
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.ticketSectionTitle}>Tus Tiquetes</Text>
           
-          {/* Card con info del ticket */}
+          {/* Tiquete activo */}
           <View style={styles.ticketCard}>
-            <View style={styles.ticketTopRow}>
-              <Text style={styles.companyName}>Arriva - Autotrans</Text>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={12} color={COLORS.yellow} />
-                <Text style={styles.ratingText}>7.8</Text>
+            <View style={styles.routeInfo}>
+              <View style={styles.routeDetails}>
+                <Ionicons name="bus-outline" size={16} color={COLORS.primaryBlue} />
+                <Text style={styles.routeText}>Sincelejo</Text>
+                <Ionicons name="arrow-forward" size={16} color={COLORS.gray} />
+                <Text style={styles.routeText}>Montería</Text>
+              </View>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusText}>Activo</Text>
               </View>
             </View>
             
-            <View style={styles.journeyContainer}>
-              <View style={styles.locationColumn}>
-                <Text style={styles.journeyLabel}>ZBT</Text>
-                <Text style={styles.journeyTime}>07:00</Text>
+            <View style={styles.timeInfo}>
+              <Ionicons name="time-outline" size={16} color={COLORS.gray} />
+              <Text style={styles.timeText}>Duración: 2 h 30 min</Text>
+            </View>
+          </View>
+
+          {/* Tiquete inactivo */}
+          <View style={styles.ticketCard}>
+            <View style={styles.routeInfo}>
+              <View style={styles.routeDetails}>
+                <Ionicons name="bus-outline" size={16} color={COLORS.primaryBlue} />
+                <Text style={styles.routeText}>Montería</Text>
+                <Ionicons name="arrow-forward" size={16} color={COLORS.gray} />
+                <Text style={styles.routeText}>Sincelejo</Text>
               </View>
-              
-              <View style={styles.journeyLine}>
-                <View style={styles.durationContainer}>
-                  <Ionicons name="time-outline" size={16} color={COLORS.gray} />
-                  <Text style={styles.durationText}>3h 5min</Text>
-                </View>
-              </View>
-              
-              <View style={styles.locationColumn}>
-                <Text style={styles.journeyLabel}>SBT</Text>
-                <Text style={styles.journeyTime}>10:05</Text>
+              <View style={[styles.statusBadge, styles.inactiveBadge]}>
+                <Text style={styles.inactiveStatusText}>Desactivado</Text>
               </View>
             </View>
             
-            {/* Barra de acciones del ticket */}
-            <View style={styles.ticketActionBar}>
-              <TouchableOpacity style={styles.ticketActionButton}>
-                <Ionicons name="search-outline" size={16} color={COLORS.white} />
-                <Text style={styles.actionButtonText}>Search</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.ticketActionButton}>
-                <Ionicons name="ticket-outline" size={16} color={COLORS.white} />
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.ticketActionButton}>
-                <Ionicons name="list-outline" size={16} color={COLORS.white} />
-              </TouchableOpacity>
+            <View style={styles.timeInfo}>
+              <Ionicons name="time-outline" size={16} color={COLORS.gray} />
+              <Text style={styles.timeText}>Duración: 2 h 30 min</Text>
             </View>
           </View>
         </View>
       </ScrollView>
+
+      {/* Barra de navegación inferior */}
+      <View style={styles.bottomNavigation}>
+        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
+          <Ionicons name="home" size={24} color={COLORS.skyBlue} />
+          <Text style={[styles.navText, styles.activeNavText]}>Inicio</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem} 
+          onPress={() => router.push('/saldoScreen')}
+        >
+          <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
+          <Text style={styles.navText}>Saldo</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem} 
+          onPress={() => router.push('/mapScreen')}
+        >
+          <Ionicons name="map-outline" size={24} color={COLORS.gray} />
+          <Text style={styles.navText}>Mapa</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navItem}
+          onPress={() => router.push('/favoritesScreen')}
+        >
+          <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
+          <Text style={styles.navText}>Favoritos</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -282,63 +319,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
-    paddingTop: Platform.OS === 'android' ? 40 : 0,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: COLORS.primaryBlue,
+    paddingTop: Platform.OS === 'android' ? 40 : 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
   },
-  locationLabel: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 4,
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.white,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  locationText: {
+  subGreeting: {
     fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.primaryBlue,
-    marginLeft: 4,
+    color: COLORS.white,
+    opacity: 0.8,
+    marginTop: 4,
   },
-  notificationButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  scrollContent: {
+    paddingBottom: 80,
+  },
+  transportContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  transportCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
-  },
-  transportContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  transportOption: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: COLORS.lightGray,
-    justifyContent: 'center',
-    alignItems: 'center',
+    elevation: 3,
   },
   transportLabel: {
-    fontSize: 10,
+    fontSize: 12,
     marginTop: 4,
     color: COLORS.primaryBlue,
   },
@@ -367,10 +390,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 10,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
@@ -380,21 +400,20 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
     marginBottom: 4,
   },
-  fieldContent: {
-    flexDirection: 'column',
-  },
-  locationCode: {
+  locationInput: {
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.primaryBlue,
+    padding: 0,
   },
-  locationName: {
+  locationDetailsInput: {
     fontSize: 12,
     color: COLORS.gray,
+    padding: 0,
+    marginTop: 2,
   },
   datesRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 15,
   },
   dateField: {
@@ -425,13 +444,23 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   passengersContent: {
+    flex: 1,
+  },
+  passengerInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  passengerText: {
-    marginLeft: 8,
+  passengerInput: {
     fontSize: 16,
     color: COLORS.primaryBlue,
+    fontWeight: '600',
+    marginLeft: 8,
+    minWidth: 20,
+  },
+  passengerLabel: {
+    fontSize: 16, 
+    color: COLORS.primaryBlue,
+    marginLeft: 4,
   },
   arrowButton: {
     width: 36,
@@ -441,10 +470,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
@@ -465,117 +491,89 @@ const styles = StyleSheet.create({
   ticketsSection: {
     padding: 20,
   },
-  ticketHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
   ticketSectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.primaryBlue,
-  },
-  seeMoreText: {
-    fontSize: 14,
-    color: COLORS.gray,
+    marginBottom: 15,
   },
   ticketCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 15,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginBottom: 12,
   },
-  ticketTopRow: {
+  routeInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
   },
-  companyName: {
+  routeDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  routeText: {
     fontSize: 16,
-    fontWeight: '600',
     color: COLORS.primaryBlue,
+    marginHorizontal: 6,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
-    paddingHorizontal: 8,
+  statusBadge: {
+    backgroundColor: COLORS.green,
+    paddingHorizontal: 12,
     paddingVertical: 4,
-    borderRadius: 10,
+    borderRadius: 12,
   },
-  ratingText: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-    color: COLORS.primaryBlue,
+  inactiveBadge: {
+    backgroundColor: COLORS.lightGray,
   },
-  journeyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 15,
-  },
-  locationColumn: {
-    alignItems: 'center',
-  },
-  journeyLabel: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 4,
-  },
-  journeyTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.primaryBlue,
-  },
-  journeyLine: {
-    flex: 1,
-    height: 2,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderStyle: 'dashed',
-    marginHorizontal: 10,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  durationContainer: {
-    position: 'absolute',
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 6,
-  },
-  durationText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginLeft: 4,
-  },
-  ticketActionBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.primaryBlue,
-    borderRadius: 20,
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  ticketActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-  },
-  actionButtonText: {
+  statusText: {
     color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  inactiveStatusText: {
+    color: COLORS.mediumGray,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  timeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    marginLeft: 6,
     fontSize: 14,
-    marginLeft: 4,
+    color: COLORS.gray,
+  },
+  bottomNavigation: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.white,
+    height: 60,
+    borderTopWidth: 1,
+    borderTopColor: '#EEEEEE',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
+  },
+  navItem: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navText: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  activeNavText: {
+    color: COLORS.skyBlue,
   },
 });
