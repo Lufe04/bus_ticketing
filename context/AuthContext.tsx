@@ -6,13 +6,14 @@ import { auth, db } from '../utils/FirebaseConfig'; // Asegúrate de tener esta 
 // Definir tipos
 type UserRole = 'client' | 'driver' | 'handler';
 
-// Interfaz para el usuario en Firestore
+// Interfaz para el usuario en Firestore, ahora con el campo saldo
 export interface UserData {
   id?: string;
   nombre: string;
   apellido: string;
   correo: string;
   role: UserRole;
+  saldo?: number; // Campo de saldo añadido como opcional para compatibilidad con usuarios existentes
 }
 
 // Interfaz para el contexto de autenticación
@@ -34,6 +35,9 @@ interface AuthContextType {
   getUserByEmail: (email: string) => Promise<UserData | null>;
   getUsersByRole: (role: UserRole) => Promise<UserData[]>;
   deleteUser: () => Promise<void>;
+  
+  // Nueva función para actualizar el saldo
+  updateUserBalance: (amount: number) => Promise<void>;
 }
 
 // Crear el contexto
@@ -78,25 +82,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Iniciar sesión
-  // En AuthContext.tsx
-const login = async (email: string, password: string) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Obtener datos del usuario desde Firestore
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      const userData = { id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> };
-      setUserData(userData);
-      return userData; // Devolver los datos del usuario
+  const login = async (email: string, password: string) => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Obtener datos del usuario desde Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      if (userDoc.exists()) {
+        const userData = { id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> };
+        setUserData(userData);
+        return userData; // Devolver los datos del usuario
+      }
+      return null;
+    } catch (error) {
+      console.error('Error de inicio de sesión:', error);
+      throw error;
     }
-    return null;
-  } catch (error) {
-    console.error('Error de inicio de sesión:', error);
-    throw error;
-  }
-};
+  };
 
   // Registrar nuevo usuario
   const register = async (email: string, password: string, userData: UserData): Promise<void> => {
@@ -105,18 +108,18 @@ const login = async (email: string, password: string) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Guardar datos del usuario en Firestore
+      // Guardar datos del usuario en Firestore, ahora con saldo inicial 0
       await setDoc(doc(db, 'users', user.uid), {
         nombre: userData.nombre,
         apellido: userData.apellido,
         correo: email,
-        role: userData.role
+        role: userData.role,
+        saldo: 0 // Inicializar el saldo en 0 para nuevos usuarios
       });
       
       // Actualizar estado local
-      setUserData({ id: user.uid, ...userData });
+      setUserData({ id: user.uid, ...userData, saldo: 0 });
       
-      // No need to return the user as the function should resolve to void
     } catch (error) {
       console.error('Error de registro:', error);
       throw error;
@@ -158,6 +161,40 @@ const login = async (email: string, password: string) => {
       setUserData({ ...userData, ...updatedData });
     } catch (error) {
       console.error('Error al actualizar datos del usuario:', error);
+      throw error;
+    }
+  };
+
+  // Nueva función para actualizar el saldo del usuario
+  const updateUserBalance = async (amount: number) => {
+    if (!currentUser || !userData) {
+      throw new Error('No hay usuario autenticado');
+    }
+
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      
+      // Obtener el saldo actual para asegurar que estamos trabajando con el valor más reciente
+      const userDoc = await getDoc(userRef);
+      if (!userDoc.exists()) {
+        throw new Error('Usuario no encontrado');
+      }
+      
+      const currentBalance = userDoc.data().saldo || 0;
+      const newBalance = currentBalance + amount;
+      
+      // No permitir saldos negativos
+      if (newBalance < 0) {
+        throw new Error('Saldo insuficiente');
+      }
+      
+      // Actualizar saldo en Firestore
+      await updateDoc(userRef, { saldo: newBalance });
+      
+      // Actualizar estado local
+      setUserData({ ...userData, saldo: newBalance });
+    } catch (error) {
+      console.error('Error al actualizar saldo del usuario:', error);
       throw error;
     }
   };
@@ -242,7 +279,8 @@ const login = async (email: string, password: string) => {
     getUserById,
     getUserByEmail,
     getUsersByRole,
-    deleteUser
+    deleteUser,
+    updateUserBalance // Añadir la nueva función al contexto
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
