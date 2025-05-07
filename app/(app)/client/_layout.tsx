@@ -7,6 +7,12 @@ export default function RootLayout() {
       screenOptions={{ headerShown: false }} 
       >
         <Stack.Screen name="index"/>
+        <Stack.Screen name="mapScreen"/>
+        <Stack.Screen name="saldoScreen"/>
+        <Stack.Screen name="selectScreen"/>
+        <Stack.Screen name="favoriteScreen"/>
+        <Stack.Screen name="chatScreen"/>
+        <Stack.Screen name="ticketsScreen"/>
       </Stack>
   )
 }

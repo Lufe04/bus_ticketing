@@ -8,11 +8,12 @@ import {
   ScrollView,
   TextInput,
   Platform,
-  StatusBar
+  StatusBar,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 // Paleta de colores actualizada
@@ -25,6 +26,7 @@ const COLORS = {
   yellow: '#FFC107',
   green: '#4CAF50',
   mediumGray: '#AAAAAA',
+  iconGray: '#666666',
 };
 
 export default function ClientHome() {
@@ -83,32 +85,36 @@ export default function ClientHome() {
 
   // Navegación a otras pantallas
   const navigateToSearch = () => {
-    router.push('/selectScreen');
+    router.push('/client/selectScreen');
+  };
+
+  const navigateToTickets = () => {
+    // Navegación a la pantalla de tickets completa
+    router.push('/client/ticketsScreen');
   };
 
   // Obtener el nombre del usuario desde userData
   const userName = userData?.nombre || 'Usuario';
+  // Primera letra del usuario para el avatar
+  const userInitial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hola, {userName}</Text>
-        <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
+        <View>
+          <Text style={styles.greeting}>Hola, {userName}</Text>
+          <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
+        </View>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>{userInitial}</Text>
+        </View>
       </View>
       
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Opciones de transporte - Solo mostramos Bus activo */}
-        <View style={styles.transportContainer}>
-          <View style={styles.transportCircle}>
-            <Ionicons name="bus" size={32} color={COLORS.primaryBlue} />
-            <Text style={styles.transportLabel}>Bus</Text>
-          </View>
-        </View>
-        
         {/* Formulario de búsqueda */}
         <View style={styles.searchForm}>
           {/* Origen y destino */}
@@ -236,47 +242,46 @@ export default function ClientHome() {
         
         {/* Sección de tus tiquetes */}
         <View style={styles.ticketsSection}>
-          <Text style={styles.ticketSectionTitle}>Tus Tiquetes</Text>
+          <View style={styles.ticketHeaderRow}>
+            <Text style={styles.ticketSectionTitle}>Tus Tiquetes</Text>
+            <TouchableOpacity onPress={navigateToTickets}>
+              <Ionicons name="arrow-forward" size={24} color={COLORS.primaryBlue} />
+            </TouchableOpacity>
+          </View>
           
-          {/* Tiquete activo */}
-          <View style={styles.ticketCard}>
-            <View style={styles.routeInfo}>
-              <View style={styles.routeDetails}>
-                <Ionicons name="bus-outline" size={16} color={COLORS.primaryBlue} />
-                <Text style={styles.routeText}>Sincelejo</Text>
-                <Ionicons name="arrow-forward" size={16} color={COLORS.gray} />
-                <Text style={styles.routeText}>Montería</Text>
-              </View>
-              <View style={styles.statusBadge}>
-                <Text style={styles.statusText}>Activo</Text>
+          {/* Tiquete nuevo estilo */}
+          <TouchableOpacity style={styles.newTicketCard}>
+            <View style={styles.ticketTopRow}>
+              <View style={styles.routeRow}>
+                <Ionicons name="bus-outline" size={20} color={COLORS.iconGray} />
+                <Text style={styles.newRouteText}>Montería → Sincelejo</Text>
               </View>
             </View>
             
-            <View style={styles.timeInfo}>
-              <Ionicons name="time-outline" size={16} color={COLORS.gray} />
-              <Text style={styles.timeText}>Duración: 2 h 30 min</Text>
-            </View>
-          </View>
-
-          {/* Tiquete inactivo */}
-          <View style={styles.ticketCard}>
-            <View style={styles.routeInfo}>
-              <View style={styles.routeDetails}>
-                <Ionicons name="bus-outline" size={16} color={COLORS.primaryBlue} />
-                <Text style={styles.routeText}>Montería</Text>
-                <Ionicons name="arrow-forward" size={16} color={COLORS.gray} />
-                <Text style={styles.routeText}>Sincelejo</Text>
+            <View style={styles.ticketInfoRow}>
+              <View style={styles.ticketInfoItem}>
+                <Ionicons name="calendar-outline" size={18} color={COLORS.iconGray} />
+                <Text style={styles.ticketInfoText}>28 Abr 2025</Text>
               </View>
-              <View style={[styles.statusBadge, styles.inactiveBadge]}>
-                <Text style={styles.inactiveStatusText}>Desactivado</Text>
+              
+              <View style={styles.ticketInfoItem}>
+                <Ionicons name="person-outline" size={18} color={COLORS.iconGray} />
+                <Text style={styles.ticketInfoText}>1 Asiento</Text>
+              </View>
+              
+              <View style={styles.ticketInfoItem}>
+                <Ionicons name="time-outline" size={18} color={COLORS.iconGray} />
+                <Text style={styles.ticketInfoText}>6:00 a.m.</Text>
               </View>
             </View>
             
-            <View style={styles.timeInfo}>
-              <Ionicons name="time-outline" size={16} color={COLORS.gray} />
-              <Text style={styles.timeText}>Duración: 2 h 30 min</Text>
+            {/* Código QR */}
+            <View style={styles.qrContainer}>
+              <View style={styles.qrCode}>
+                <Ionicons name="qr-code" size={36} color={COLORS.primaryBlue} />
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -289,7 +294,7 @@ export default function ClientHome() {
         
         <TouchableOpacity 
           style={styles.navItem} 
-          onPress={() => router.push('/saldoScreen')}
+          onPress={() => router.push('/client/saldoScreen')}
         >
           <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
           <Text style={styles.navText}>Saldo</Text>
@@ -297,7 +302,7 @@ export default function ClientHome() {
         
         <TouchableOpacity 
           style={styles.navItem} 
-          onPress={() => router.push('/mapScreen')}
+          onPress={() => router.push('/client/mapScreen')}
         >
           <Ionicons name="map-outline" size={24} color={COLORS.gray} />
           <Text style={styles.navText}>Mapa</Text>
@@ -305,10 +310,10 @@ export default function ClientHome() {
         
         <TouchableOpacity 
           style={styles.navItem}
-          onPress={() => router.push('/favoritesScreen')}
+          onPress={() => router.push('/client/chatScreen')}
         >
-          <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Favoritos</Text>
+          <Ionicons name="chatbubbles-outline" size={24} color={COLORS.gray} />
+          <Text style={styles.navText}>Chat</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -327,6 +332,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   greeting: {
     fontSize: 24,
@@ -339,34 +347,25 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginTop: 4,
   },
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+  },
   scrollContent: {
     paddingBottom: 80,
   },
-  transportContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  transportCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  transportLabel: {
-    fontSize: 12,
-    marginTop: 4,
-    color: COLORS.primaryBlue,
-  },
   searchForm: {
     paddingHorizontal: 20,
+    marginTop: 20,
     marginBottom: 25,
   },
   locationRow: {
@@ -491,16 +490,21 @@ const styles = StyleSheet.create({
   ticketsSection: {
     padding: 20,
   },
+  ticketHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
   ticketSectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.primaryBlue,
-    marginBottom: 15,
   },
-  ticketCard: {
+  newTicketCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 15,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -508,48 +512,45 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 12,
   },
-  routeInfo: {
+  ticketTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  routeDetails: {
+  routeRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  routeText: {
+  newRouteText: {
     fontSize: 16,
+    fontWeight: '600',
     color: COLORS.primaryBlue,
-    marginHorizontal: 6,
+    marginLeft: 8,
   },
-  statusBadge: {
-    backgroundColor: COLORS.green,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+  ticketInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 12,
   },
-  inactiveBadge: {
-    backgroundColor: COLORS.lightGray,
-  },
-  statusText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  inactiveStatusText: {
-    color: COLORS.mediumGray,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  timeInfo: {
+  ticketInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 20,
   },
-  timeText: {
-    marginLeft: 6,
+  ticketInfoText: {
     fontSize: 14,
     color: COLORS.gray,
+    marginLeft: 6,
+  },
+  qrContainer: {
+    alignItems: 'flex-end',
+  },
+  qrCode: {
+    backgroundColor: COLORS.green,
+    borderRadius: 8,
+    padding: 8,
+    opacity: 0.9,
   },
   bottomNavigation: {
     flexDirection: 'row',

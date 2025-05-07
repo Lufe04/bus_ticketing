@@ -95,7 +95,7 @@ export default function MapScreen() {
         <Text style={styles.errorText}>{errorMsg}</Text>
         <TouchableOpacity 
           style={styles.retryButton}
-          onPress={() => router.replace('/mapScreen')}
+          onPress={() => router.replace('/client/mapScreen')}
         >
           <Text style={styles.retryButtonText}>Reintentar</Text>
         </TouchableOpacity>
@@ -177,7 +177,7 @@ export default function MapScreen() {
         
         <TouchableOpacity 
           style={styles.navItem} 
-          onPress={() => router.push('/saldoScreen')}
+          onPress={() => router.push('/client/saldoScreen')}
         >
           <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
           <Text style={styles.navText}>Saldo</Text>
@@ -190,7 +190,7 @@ export default function MapScreen() {
         
         <TouchableOpacity 
           style={styles.navItem}
-          onPress={() => router.push('/favoritesScreen')}
+          onPress={() => router.push('/client/favoritesScreen')}
         >
           <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
           <Text style={styles.navText}>Favoritos</Text>
