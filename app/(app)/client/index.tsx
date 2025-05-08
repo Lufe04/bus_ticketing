@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -9,54 +9,43 @@ import {
   TextInput,
   Platform,
   StatusBar,
-  Image
+  Alert,
+  Modal,
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
 
-// Paleta de colores actualizada
+// Paleta de colores
 const COLORS = {
   primaryBlue: '#131A2E',
   skyBlue: '#20ADF5',
   gray: '#989898',
   lightGray: '#F2F4F5',
   white: '#FFFFFF',
-  yellow: '#FFC107',
   green: '#4CAF50',
-  mediumGray: '#AAAAAA',
   iconGray: '#666666',
+  overlay: 'rgba(0,0,0,0.7)',
 };
 
 export default function ClientHome() {
-  const { userData } = useAuth();
+  const { currentUser } = useAuth();
+  const { userData, isLoading: isUserDataLoading } = useUser();
   const router = useRouter();
   
   // Estados para el formulario de búsqueda
   const [from, setFrom] = useState('CSA');
-  const [fromDetails, setFromDetails] = useState('City, Station or Airport');
+  const [fromDetails, setFromDetails] = useState('Ciudad, Estación o Aeropuerto');
   const [to, setTo] = useState('CSA');
-  const [toDetails, setToDetails] = useState('City, Station or Airport');
-  const [departureDate, setDepartureDate] = useState(new Date());
-  const [returnDate, setReturnDate] = useState<Date | null>(null);
-  const [showDeparturePicker, setShowDeparturePicker] = useState(false);
-  const [showReturnPicker, setShowReturnPicker] = useState(false);
-  const [passengerCount, setPassengerCount] = useState('1');
-
-  // Formatear fechas para la visualización
-  const formatDate = (date: Date | null) => {
-    if (!date) return 'Optional';
-    
-    // Formato personalizado: "28 abr 2025"
-    const day = date.getDate();
-    const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-    const month = monthNames[date.getMonth()];
-    const year = date.getFullYear();
-    
-    return `${day} ${month} ${year}`;
-  };
-
+  const [toDetails, setToDetails] = useState('Ciudad, Estación o Aeropuerto');
+  const [departureDate, setDepartureDate] = useState('28 abr 2025');
+  const [returnDate, setReturnDate] = useState<string | null>(null);
+  const [passengerCount, setPassengerCount] = useState(1);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  
   // Función para intercambiar origen y destino
   const swapLocations = () => {
     const tempFrom = from;
@@ -68,19 +57,13 @@ export default function ClientHome() {
     setToDetails(tempFromDetails);
   };
 
-  // Manejadores para los date pickers
-  const onDepartureDateChange = (event: any, selectedDate?: Date) => {
-    setShowDeparturePicker(false);
-    if (selectedDate) {
-      setDepartureDate(selectedDate);
-    }
-  };
-
-  const onReturnDateChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
-    setShowReturnPicker(false);
-    if (selectedDate) {
-      setReturnDate(selectedDate);
-    }
+  // Mostrar selectores de fecha
+  const showDatePicker = (type: 'departure' | 'return') => {
+    Alert.alert(
+      'Seleccionar fecha',
+      `Esta funcionalidad permitiría elegir la fecha de ${type === 'departure' ? 'salida' : 'regreso'}.`,
+      [{ text: 'Entendido', style: 'default' }]
+    );
   };
 
   // Navegación a otras pantallas
@@ -89,14 +72,83 @@ export default function ClientHome() {
   };
 
   const navigateToTickets = () => {
-    // Navegación a la pantalla de tickets completa
-    router.push('/client/ticketsScreen');
+    router.push('/client/ticketScreen');
   };
 
-  // Obtener el nombre del usuario desde userData
+  // Obtener el nombre del usuario
   const userName = userData?.nombre || 'Usuario';
   // Primera letra del usuario para el avatar
   const userInitial = userName ? userName.charAt(0).toUpperCase() : 'U';
+
+  // Modal del QR
+  const renderQrModal = () => {
+    return (
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={qrModalVisible}
+        onRequestClose={() => setQrModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Código QR del Tiquete</Text>
+              <TouchableOpacity onPress={() => setQrModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.primaryBlue} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalContent}>
+              <View style={styles.qrCodeLarge}>
+                <Ionicons name="qr-code" size={180} color={COLORS.primaryBlue} />
+              </View>
+              
+              <Text style={styles.qrInfoText}>
+                Montería → Sincelejo
+              </Text>
+              <Text style={styles.qrDetailsText}>
+                28 Abr 2025 | 6:00 a.m. | Asiento 1
+              </Text>
+              
+              <Text style={styles.qrInstructions}>
+                Muestra este código al abordar el bus
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // Mostrar pantalla de carga mientras se obtienen los datos del usuario
+  if (isUserDataLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.loadingContainer]}>
+          <ActivityIndicator size="large" color={COLORS.skyBlue} />
+          <Text style={styles.loadingText}>Cargando información...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Si no hay datos de usuario, mostrar mensaje
+  if (!userData && !isUserDataLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.loadingContainer]}>
+          <Ionicons name="alert-circle-outline" size={64} color={COLORS.gray} />
+          <Text style={styles.errorText}>No se pudo cargar la información del usuario</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => router.replace('/client')}
+          >
+            <Text style={styles.retryButtonText}>Reintentar</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -116,11 +168,11 @@ export default function ClientHome() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Formulario de búsqueda */}
-        <View style={styles.searchForm}>
+        <View style={styles.section}>
           {/* Origen y destino */}
           <View style={styles.locationRow}>
             <View style={styles.locationField}>
-              <Text style={styles.fieldLabel}>From</Text>
+              <Text style={styles.fieldLabel}>Desde</Text>
               <TextInput
                 style={styles.locationInput}
                 value={from}
@@ -131,7 +183,7 @@ export default function ClientHome() {
                 style={styles.locationDetailsInput}
                 value={fromDetails}
                 onChangeText={setFromDetails}
-                placeholder="City, Station or Airport"
+                placeholder="Ciudad, Estación o Aeropuerto"
               />
             </View>
             
@@ -140,7 +192,7 @@ export default function ClientHome() {
             </TouchableOpacity>
             
             <View style={styles.locationField}>
-              <Text style={styles.fieldLabel}>To</Text>
+              <Text style={styles.fieldLabel}>Hasta</Text>
               <TextInput
                 style={styles.locationInput}
                 value={to}
@@ -151,60 +203,39 @@ export default function ClientHome() {
                 style={styles.locationDetailsInput}
                 value={toDetails}
                 onChangeText={setToDetails}
-                placeholder="City, Station or Airport"
+                placeholder="Ciudad, Estación o Aeropuerto"
               />
             </View>
           </View>
+          
+          {/* Resto del contenido... */}
           
           {/* Fechas */}
           <View style={styles.datesRow}>
             <TouchableOpacity 
               style={styles.dateField} 
-              onPress={() => setShowDeparturePicker(true)}
+              onPress={() => showDatePicker('departure')}
             >
-              <Text style={styles.fieldLabel}>Departing on</Text>
+              <Text style={styles.fieldLabel}>Fecha de salida</Text>
               <View style={styles.dateContent}>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
-                <Text style={styles.dateText}>
-                  {formatDate(departureDate)}
-                </Text>
+                <Text style={styles.dateText}>{departureDate}</Text>
               </View>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.dateField} 
-              onPress={() => setShowReturnPicker(true)}
+              style={[styles.dateField, { marginRight: 0 }]} 
+              onPress={() => showDatePicker('return')}
             >
-              <Text style={styles.fieldLabel}>Returning on</Text>
+              <Text style={styles.fieldLabel}>Fecha de regreso</Text>
               <View style={styles.dateContent}>
                 <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
                 <Text style={styles.dateText}>
-                  {returnDate ? formatDate(returnDate) : 'Optional'}
+                  {returnDate || 'Opcional'}
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
-          
-          {/* Mostrar pickers de fecha */}
-          {showDeparturePicker && (
-            <DateTimePicker
-              value={departureDate || new Date()}
-              mode="date"
-              display="default"
-              onChange={onDepartureDateChange}
-              minimumDate={new Date()}
-            />
-          )}
-          
-          {showReturnPicker && (
-            <DateTimePicker
-              value={returnDate || new Date()}
-              mode="date"
-              display="default"
-              onChange={onReturnDateChange}
-              minimumDate={departureDate || new Date()}
-            />
-          )}
           
           {/* Pasajeros */}
           <View style={styles.passengersContainer}>
@@ -214,24 +245,19 @@ export default function ClientHome() {
                 <Ionicons name="people-outline" size={18} color={COLORS.gray} />
                 <TextInput
                   style={styles.passengerInput}
-                  value={passengerCount}
+                  value={String(passengerCount)}
                   onChangeText={(text) => {
-                    // Solo permitir números
-                    const numericValue = text.replace(/[^0-9]/g, '');
-                    setPassengerCount(numericValue || '1');
+                    const num = parseInt(text.replace(/[^0-9]/g, ''));
+                    setPassengerCount(isNaN(num) ? 1 : num);
                   }}
                   keyboardType="numeric"
                   maxLength={2}
                 />
                 <Text style={styles.passengerLabel}>
-                  {parseInt(passengerCount) === 1 ? 'Pasajero' : 'Pasajeros'}
+                  {passengerCount === 1 ? 'Pasajero' : 'Pasajeros'}
                 </Text>
               </View>
             </View>
-            
-            <TouchableOpacity style={styles.arrowButton}>
-              <Ionicons name="arrow-forward" size={20} color={COLORS.primaryBlue} />
-            </TouchableOpacity>
           </View>
           
           {/* Botón de búsqueda */}
@@ -241,81 +267,57 @@ export default function ClientHome() {
         </View>
         
         {/* Sección de tus tiquetes */}
-        <View style={styles.ticketsSection}>
-          <View style={styles.ticketHeaderRow}>
-            <Text style={styles.ticketSectionTitle}>Tus Tiquetes</Text>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Tus Tiquetes</Text>
             <TouchableOpacity onPress={navigateToTickets}>
               <Ionicons name="arrow-forward" size={24} color={COLORS.primaryBlue} />
             </TouchableOpacity>
           </View>
           
-          {/* Tiquete nuevo estilo */}
-          <TouchableOpacity style={styles.newTicketCard}>
-            <View style={styles.ticketTopRow}>
-              <View style={styles.routeRow}>
-                <Ionicons name="bus-outline" size={20} color={COLORS.iconGray} />
-                <Text style={styles.newRouteText}>Montería → Sincelejo</Text>
+          {/* Tiquete (no clickeable) */}
+          <View style={styles.ticketCard}>
+            <View style={styles.ticketContent}>
+              <View style={styles.ticketRow}>
+                <View style={styles.ticketIcon}>
+                  <Ionicons name="bus-outline" size={18} color={COLORS.iconGray} />
+                </View>
+                <Text style={styles.routeText}>Montería → Sincelejo</Text>
+              </View>
+              
+              <View style={styles.ticketDetailsRow}>
+                <View style={styles.ticketDetailItem}>
+                  <Ionicons name="calendar-outline" size={16} color={COLORS.iconGray} />
+                  <Text style={styles.ticketDetailText}>28 Abr 2025</Text>
+                </View>
+                
+                <View style={styles.ticketDetailItem}>
+                  <Ionicons name="person-outline" size={16} color={COLORS.iconGray} />
+                  <Text style={styles.ticketDetailText}>1 Asiento</Text>
+                </View>
+                
+                <View style={styles.ticketDetailItem}>
+                  <Ionicons name="time-outline" size={16} color={COLORS.iconGray} />
+                  <Text style={styles.ticketDetailText}>6:00 a.m.</Text>
+                </View>
               </View>
             </View>
             
-            <View style={styles.ticketInfoRow}>
-              <View style={styles.ticketInfoItem}>
-                <Ionicons name="calendar-outline" size={18} color={COLORS.iconGray} />
-                <Text style={styles.ticketInfoText}>28 Abr 2025</Text>
-              </View>
-              
-              <View style={styles.ticketInfoItem}>
-                <Ionicons name="person-outline" size={18} color={COLORS.iconGray} />
-                <Text style={styles.ticketInfoText}>1 Asiento</Text>
-              </View>
-              
-              <View style={styles.ticketInfoItem}>
-                <Ionicons name="time-outline" size={18} color={COLORS.iconGray} />
-                <Text style={styles.ticketInfoText}>6:00 a.m.</Text>
-              </View>
-            </View>
-            
-            {/* Código QR */}
-            <View style={styles.qrContainer}>
+            {/* Solo el QR es clickeable */}
+            <TouchableOpacity 
+              style={styles.qrContainer}
+              onPress={() => setQrModalVisible(true)}
+            >
               <View style={styles.qrCode}>
-                <Ionicons name="qr-code" size={36} color={COLORS.primaryBlue} />
+                <Ionicons name="qr-code-outline" size={36} color={COLORS.white} />
               </View>
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
-
-      {/* Barra de navegación inferior */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity style={styles.navItem} onPress={() => {}}>
-          <Ionicons name="home" size={24} color={COLORS.skyBlue} />
-          <Text style={[styles.navText, styles.activeNavText]}>Inicio</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/client/saldoScreen')}
-        >
-          <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Saldo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/client/mapScreen')}
-        >
-          <Ionicons name="map-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Mapa</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => router.push('/client/chatScreen')}
-        >
-          <Ionicons name="chatbubbles-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Chat</Text>
-        </TouchableOpacity>
-      </View>
+      
+      {/* Modal del código QR */}
+      {renderQrModal()}
     </SafeAreaView>
   );
 }
@@ -325,10 +327,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 20,
+    fontSize: 16,
+    color: COLORS.gray,
+    textAlign: 'center',
+  },
+  errorText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.gray,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  retryButton: {
+    backgroundColor: COLORS.skyBlue,
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+  },
+  retryButtonText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   header: {
     backgroundColor: COLORS.primaryBlue,
     paddingTop: Platform.OS === 'android' ? 40 : 20,
-    paddingBottom: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -361,23 +393,24 @@ const styles = StyleSheet.create({
     color: COLORS.primaryBlue,
   },
   scrollContent: {
-    paddingBottom: 80,
+    paddingBottom: 80, // Espacio para el tab navigator
   },
-  searchForm: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-    marginBottom: 25,
+  // El resto de estilos se mantienen igual...
+  section: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
   locationField: {
     flex: 1,
-    borderWidth: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
     borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderWidth: 1,
     padding: 12,
   },
   swapButton: {
@@ -413,13 +446,15 @@ const styles = StyleSheet.create({
   },
   datesRow: {
     flexDirection: 'row',
-    marginBottom: 15,
+    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   dateField: {
     flex: 1,
-    borderWidth: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
     borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderWidth: 1,
     padding: 12,
     marginRight: 10,
   },
@@ -435,12 +470,12 @@ const styles = StyleSheet.create({
   passengersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
     borderColor: '#E0E0E0',
-    borderRadius: 12,
+    borderWidth: 1,
     padding: 12,
-    marginBottom: 15,
+    marginBottom: 16,
   },
   passengersContent: {
     flex: 1,
@@ -451,57 +486,41 @@ const styles = StyleSheet.create({
   },
   passengerInput: {
     fontSize: 16,
-    color: COLORS.primaryBlue,
     fontWeight: '600',
+    color: COLORS.primaryBlue,
     marginLeft: 8,
-    minWidth: 20,
+    padding: 0,
+    minWidth: 30,
   },
   passengerLabel: {
-    fontSize: 16, 
+    fontSize: 16,
     color: COLORS.primaryBlue,
     marginLeft: 4,
-  },
-  arrowButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   searchButton: {
     backgroundColor: COLORS.primaryBlue,
     borderRadius: 12,
-    height: 55,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 15,
   },
   searchButtonText: {
     color: COLORS.white,
     fontSize: 18,
     fontWeight: '600',
   },
-  ticketsSection: {
-    padding: 20,
-  },
-  ticketHeaderRow: {
+  sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
-  ticketSectionTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: COLORS.primaryBlue,
   },
-  newTicketCard: {
+  ticketCard: {
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 16,
@@ -510,71 +529,102 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    marginBottom: 12,
-  },
-  ticketTopRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
   },
-  routeRow: {
+  ticketContent: {
+    flex: 1,
+  },
+  ticketRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  newRouteText: {
+  ticketIcon: {
+    marginRight: 8,
+  },
+  routeText: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.primaryBlue,
-    marginLeft: 8,
   },
-  ticketInfoRow: {
+  ticketDetailsRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 12,
+    flexWrap: 'wrap',
   },
-  ticketInfoItem: {
+  ticketDetailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 20,
+    marginRight: 16,
+    marginBottom: 4,
   },
-  ticketInfoText: {
+  ticketDetailText: {
     fontSize: 14,
     color: COLORS.gray,
     marginLeft: 6,
   },
   qrContainer: {
-    alignItems: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   qrCode: {
     backgroundColor: COLORS.green,
     borderRadius: 8,
     padding: 8,
-    opacity: 0.9,
   },
-  bottomNavigation: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    height: 60,
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-  },
-  navItem: {
+  // Estilos para el modal
+  modalOverlay: {
     flex: 1,
+    backgroundColor: COLORS.overlay,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  navText: {
-    fontSize: 12,
+  modalContainer: {
+    width: '85%',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+  },
+  modalContent: {
+    alignItems: 'center',
+  },
+  qrCodeLarge: {
+    backgroundColor: COLORS.lightGray,
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  qrInfoText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.primaryBlue,
+    marginBottom: 8,
+  },
+  qrDetailsText: {
+    fontSize: 14,
     color: COLORS.gray,
-    marginTop: 2,
+    marginBottom: 20,
   },
-  activeNavText: {
-    color: COLORS.skyBlue,
-  },
+  qrInstructions: {
+    fontSize: 16,
+    color: COLORS.primaryBlue,
+    fontWeight: '500',
+    marginTop: 10,
+    marginBottom: 10,
+  }
 });

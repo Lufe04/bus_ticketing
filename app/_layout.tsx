@@ -2,9 +2,10 @@ import { AuthProvider } from "../context/AuthContext";
 import { Stack } from "expo-router";
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import Constants, { UserInterfaceIdiom } from 'expo-constants';
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
+import { UserProvider } from "@/context/UserContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -116,6 +117,7 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
+      <UserProvider>
       <Stack
         screenOptions={{ headerShown: false }} 
       >
@@ -123,6 +125,7 @@ export default function RootLayout() {
         <Stack.Screen name="(app)"/>
         <Stack.Screen name="index"/>
       </Stack>
+      </UserProvider>
     </AuthProvider>
   )
 }

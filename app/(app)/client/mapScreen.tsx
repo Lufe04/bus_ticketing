@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
-  Alert,
   ActivityIndicator,
   Platform
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useRouter } from 'expo-router';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
 
 // Paleta de colores consistente
 const COLORS = {
@@ -28,7 +28,8 @@ const COLORS = {
 };
 
 export default function MapScreen() {
-  const { userData } = useAuth();
+  const { currentUser } = useAuth();
+  const { userData } = useUser();
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
   
@@ -78,6 +79,18 @@ export default function MapScreen() {
     }
   };
 
+  // Si no hay datos del usuario, mostrar pantalla de carga
+  if (!userData && !isLoading && !errorMsg) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={COLORS.skyBlue} />
+          <Text style={styles.loadingText}>Cargando información de usuario...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   // Renderizar contenido según estado
   let content;
   
@@ -122,7 +135,7 @@ export default function MapScreen() {
               latitude: location.coords.latitude,
               longitude: location.coords.longitude,
             }}
-            title="Tu ubicación"
+            title={userData?.nombre ? `${userData.nombre}` : 'Tu ubicación'}
             description="Estás aquí"
           >
             <View style={styles.markerContainer}>
@@ -148,53 +161,9 @@ export default function MapScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={28} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mi Ubicación</Text>
-        <View style={styles.headerRight} />
-      </View>
-      
-      {/* Contenido principal */}
-      <View style={styles.content}>
+      {/* Contenido principal (sin header) */}
+      <View style={styles.fullContent}>
         {content}
-      </View>
-      
-      {/* Navigation Bar */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/(app)/client')}
-        >
-          <Ionicons name="home-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Inicio</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/client/saldoScreen')}
-        >
-          <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Saldo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="map" size={24} color={COLORS.skyBlue} />
-          <Text style={[styles.navText, styles.activeNavText]}>Mapa</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => router.push('/client/favoritesScreen')}
-        >
-          <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Favoritos</Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -205,30 +174,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  header: {
-    backgroundColor: COLORS.primaryBlue,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
-    paddingBottom: 20,
-    paddingHorizontal: 15,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  headerRight: {
-    width: 40,
-  },
-  content: {
+  fullContent: {
     flex: 1,
   },
   centerContainer: {
@@ -272,7 +218,7 @@ const styles = StyleSheet.create({
   centerButton: {
     position: 'absolute',
     right: 16,
-    bottom: 20,
+    bottom: 16,
     backgroundColor: COLORS.white,
     width: 50,
     height: 50,
@@ -295,25 +241,5 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 2,
     borderColor: COLORS.white,
-  },
-  bottomNavigation: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    height: 60,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-  },
-  navItem: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 2,
-  },
-  activeNavText: {
-    color: COLORS.skyBlue,
-  },
+  }
 });
