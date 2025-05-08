@@ -1,79 +1,116 @@
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from "react";
-import { View, Text, ScrollView, StyleSheet, Dimensions } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
+import { Calendar,  DateData, LocaleConfig } from 'react-native-calendars';
+import Marking from 'react-native-calendars/src/calendar/day/marking';
 
-const { width, height } = Dimensions.get('window');
-
-const COLORS = {
-  skyBlue: '#20ADF5',
-  midnightBlue: '#1A2E46',
-  gray: '#989898',
-  white: '#FFFFFF'
+LocaleConfig.locales['es'] = {
+  monthNames: [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ],
+  monthNamesShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+  dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+  dayNamesShort: ['D', 'L', 'M', 'M', 'J', 'V', 'S'],
+  today: 'Hoy'
 };
 
-export default function MisRutas() {
-  const router = useRouter();
+LocaleConfig.defaultLocale = 'es';
 
-  const rutasProximas = [
-    {
-      fecha: 'Hoy',
-      origen: 'Ciudad A',
-      destino: 'Ciudad B',
-      hora: '08:00 AM',
-      duracion: '3h 40m',
-      estado: 'En curso',
-    },
-    {
-      fecha: 'Mañana',
-      origen: 'Ciudad C',
-      destino: 'Ciudad D',
-      hora: '10:00 AM',
-      duracion: '5h 00m',
-      estado: 'Pendiente',
-    },
-    {
-      fecha: 'Lun, 24 abr',
-      origen: 'Ciudad E',
-      destino: 'Ciudad F',
-      hora: '06:00 AM',
-      duracion: '2h 35m',
-      estado: 'Pendiente',
-    },
-  ];
+export default function DriverRoutesScreen() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mis Rutas Próximas</Text>
+      {/* Encabezado */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Hola, Usuario</Text>
+          <Text style={styles.headerSubtitle}>Planifica tu recorrido</Text>
+        </View>
+        <View style={styles.userCircle}>
+          <Text style={styles.userInitial}>U</Text>
+        </View>
+      </View>
 
-      <ScrollView style={{ marginTop: 20 }}>
-        {rutasProximas.map((ruta, index) => (
-          <View key={index} style={styles.routeCard}>
-            <View style={styles.row}>
-              <Ionicons name="bus-outline" size={24} color={COLORS.midnightBlue} />
-              <Text style={styles.dateText}>{ruta.fecha} | {ruta.hora}</Text>
-            </View>
+      {/* Calendario (mock visual) */}
+      <Calendar
+        onDayPress={(day: DateData) => {
+          console.log('selected day', day);
+        }}
+        markedDates={{
+          '2025-05-03': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-04': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-08': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-09': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-10': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-24': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+          '2025-05-25': { marked: false, selectedColor: '#20ADF5', selected: true, },
+          '2025-05-26': { marked: false, selectedColor: 'rgba(32, 173, 245, 0.2)', selected: true },
+        }}
+        theme={{
+          backgroundColor: '#F7F8FA',
+          calendarBackground: '#F7F8FA',
+          selectedDayTextColor: '#000000',
+          textSectionTitleColor: '#000000',
+          selectedDayBackgroundColor: '#20ADF5',
+          todayTextColor: '#20ADF5',
+          dayTextColor: '#000000',
+          textDisabledColor: '#989898',
+          dotColor: '#20ADF5',
+          arrowColor: '#000000',
+          monthTextColor: '#000000',
+          textDayFontSize: 16,
+          textMonthFontSize: 20,
+          textDayHeaderFontSize: 16,
+          textMonthFontWeight: '500',
+          textDayFontWeight: '400',
+        }}
+        firstDay={1}
+        style={{
+          marginHorizontal: 16,
+          borderRadius: 16,
+          elevation: 2,
+          paddingBottom: 10,
+        }}
+      />
 
-            <Text style={styles.routeText}>
-              {ruta.origen} ➔ {ruta.destino}
-            </Text>
+      {/* Rutas del día */}
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16 }}>
+        <Text style={styles.sectionTitle}>Tus próximas rutas</Text>
+        <Text style={styles.dateText}>Domingo 25 de Mayo</Text>
 
-            <View style={styles.infoRow}>
-              <Text style={styles.infoText}>Duración: {ruta.duracion}</Text>
-              <View style={[styles.statusChip, ruta.estado === 'En curso' ? styles.active : styles.pending]}>
-                <Text style={styles.statusText}>{ruta.estado}</Text>
-              </View>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-      <View style={styles.navbar}>
-              <Ionicons name="home-outline" size={28} color={COLORS.gray} onPress={() => router.navigate('/driver')} />
-              <Ionicons name="swap-horizontal-outline" size={28} color={COLORS.skyBlue} />
-              <Ionicons name="document-text-outline" size={28} color={COLORS.gray} onPress={() => router.navigate('/driver/history')}/>
-              <Ionicons name="settings-outline" size={28} color={COLORS.gray} />
+        <View style={styles.routeCard}>
+          <MaterialIcons name="date-range" size={24} color='rgba(50, 50, 50, 0.8)'  style={{ marginRight: 8 }} />
+          <Text style={[styles.routeText, { marginHorizontal: 5}]}>Santa Marta</Text>
+          <MaterialIcons name="east" size={20} color='rgba(50, 50, 50, 0.8)'  style={{ marginHorizontal: 10 }} />
+          <Text style={styles.routeText}>Barranquilla</Text>
         </View>
 
+        <View style={styles.routeCard}>
+          <MaterialIcons name="date-range" size={24} color='rgba(50, 50, 50, 0.8)'  style={{ marginRight: 8 }} />
+          <Text style={[styles.routeText, { marginHorizontal: 5 }]}>Barranquilla</Text>
+          <MaterialIcons name="east" size={20} color='rgba(50, 50, 50, 0.8)'  style={{ marginHorizontal: 10 }} />
+          <Text style={styles.routeText}>Cartagena</Text>
+        </View>
+      </ScrollView>
+
+      {/* Footer */}
+      <View style={styles.navbar}>
+        <View style={styles.navItem}>
+          <MaterialCommunityIcons name="text-box-outline" size={40} style={styles.navbarIconActive}/>
+          <Text style={styles.navLabelActive}>Mis Rutas</Text>
+        </View>
+        <View style={styles.navItem}>
+          <MaterialCommunityIcons name="home-outline" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver')}/>
+          <Text style={styles.navLabel}>Inicio</Text>
+        </View>
+        <View style={styles.navItem}>
+          <MaterialIcons name="event-available" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver/history')} />
+          <Text style={styles.navLabel}>Historial</Text>
+        </View>
+      </View>
     </View>
   );
 }
@@ -81,76 +118,151 @@ export default function MisRutas() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 20,
-    paddingTop: 50,
+    backgroundColor: '#F7F8FA',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.midnightBlue,
-  },
-  routeCard: {
-    backgroundColor: '#F9F9F9',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  dateText: {
-    marginLeft: 10,
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  routeText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.midnightBlue,
-    marginVertical: 8,
-  },
-  infoRow: {
+  header: {
+    backgroundColor: '#08173B',
+    padding: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  infoText: {
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  statusChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  active: {
-    backgroundColor: '#D0F0FF',
-  },
-  pending: {
-    backgroundColor: '#FFE8D0',
-  },
-  statusText: {
-    fontSize: 12,
-    color: COLORS.midnightBlue,
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 25,
     fontWeight: '600',
   },
-  navbar: {
+  headerSubtitle: {
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '400',
+    marginTop: 0,
+  }, 
+  userCircle: {
+    backgroundColor: '#FFFFFF',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userInitial: {
+    color: '#08173B',
+    fontWeight: '500',
+    fontSize: 32,
+  },
+  calendarContainer: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    margin: 16,
+    borderRadius: 16,
+    elevation: 1,
+  },
+  calendarHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    backgroundColor: COLORS.white,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calendarMonth: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  dayLabel: {
+    width: '14.28%',
+    textAlign: 'center',
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 6,
+  },
+  dayCell: {
+    width: '14.28%',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dayCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayText: {
+    fontSize: 13,
+    color: '#000',
+  },
+  dayHighlight: {
+    backgroundColor: 'rgba(32, 173, 245, 0.2)',
+  },
+  dayToday: {
+    backgroundColor: '#20ADF5',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  dateText: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: 12,
+    marginTop: 12,
+    color: '#000',
+  },
+  routeCard: {
+    borderWidth: 0.5,
+    borderColor: 'rgba(50, 50, 50, 0.8)' ,
+    borderRadius: 24,
+    padding: 10,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  routeText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: 'rgba(50, 50, 50, 0.8)' ,
+  },
+  navbar: {
     position: 'absolute',
     bottom: 0,
     width: '100%',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  navItem: {
+    alignItems: 'center',
+  },
+  navbarIcon: {
+    color: '#000000',
+  },
+  navbarIconActive: {
+    color: '#20ADF5',
+  },
+  navLabel: {
+    fontSize: 12,
+    color: '#000',
+    marginTop: 2,
+  },
+  navLabelActive: {
+    fontSize: 12,
+    color: '#20ADF5',
+    marginTop: 2,
+    fontWeight: '600',
   },
 });

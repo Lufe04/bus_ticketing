@@ -9,6 +9,11 @@ export default function _layout() {
             <Stack.Screen name="index"/>
             <Stack.Screen name="routes"/>
             <Stack.Screen name="history"/>
+            <Stack.Screen name="boarding"/>
+            <Stack.Screen name="scan"/>
+            <Stack.Screen name="route"/>
+            <Stack.Screen name="routeMap"/>
+            <Stack.Screen name="summary"/>
     </Stack>
   )
 }
