@@ -29,7 +29,7 @@ export default function DriverHistoryScreen() {
   }));
 
   const shortMonth = (m: number) => {
-    const nombres = ['ENER', 'FEBR', 'MARZ', 'ABRL', 'MAY', 'JUN', 'JUL', 'AGOS', 'SEPT', 'OCT', 'NOV', 'DIC'];
+    const nombres = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
     return nombres[m - 1] || 'MES';
   };
 
