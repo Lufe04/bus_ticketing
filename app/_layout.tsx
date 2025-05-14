@@ -1,12 +1,12 @@
 import { AuthProvider } from "../context/AuthContext";
 import { Stack } from "expo-router";
 import * as Device from 'expo-device';
-//import * as Notifications from 'expo-notifications';
+import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
 
-/*Notifications.setNotificationHandler({
+Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
@@ -80,10 +80,9 @@ async function registerForPushNotificationsAsync() {
   }
 
   return token;
-}*/
+}
 
 export default function RootLayout() {
-  /*
   const [expoPushToken, setExpoPushToken] = useState('');
   const [channels, setChannels] = useState<Notifications.NotificationChannel[]>([]);
   const [notification, setNotification] = useState<Notifications.Notification | undefined>(
@@ -112,7 +111,7 @@ export default function RootLayout() {
       responseListener.current &&
         Notifications.removeNotificationSubscription(responseListener.current);
     };
-  }, []);*/
+  }, []);
 
 
   return (
