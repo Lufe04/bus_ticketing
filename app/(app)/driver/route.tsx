@@ -53,10 +53,10 @@ export default function RouteInfoScreen() {
 
       {/* Botones */}
       <View style={styles.buttonsContainer}>
-        <TouchableOpacity style={styles.scanButton} onPress={() => router.push("C:/Users/charj/Bus_Ticketing/bus_ticketing/app/(app)/driver/scan.tsx")}>
+        <TouchableOpacity style={styles.scanButton} onPress={() => router.navigate('/driver/scan')}>
           <Text style={styles.scanButtonText}>Escanear Pasajes</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.startButton} onPress={() => router.push('/driver/routeMap')}>
+        <TouchableOpacity style={styles.startButton} onPress={() => router.navigate('/driver/routeMap')}>
           <Text style={styles.startButtonText}>Empezar Recorrido</Text>
         </TouchableOpacity>
       </View>
