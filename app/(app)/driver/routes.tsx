@@ -5,10 +5,8 @@ import { useRouter } from 'expo-router';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { useBoarding } from '../../../context/BoardingContext';
 import { useAuth } from '../../../context/AuthContext';
-import { es } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
-import { es as localeES } from 'date-fns/locale';
 
 
 // Configuración en español
