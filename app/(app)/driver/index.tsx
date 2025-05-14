@@ -106,7 +106,7 @@ export default function DriverHomeScreen() {
             <TouchableOpacity
               style={[styles.startButton, !isWithinBoardingWindow(currentBoarding.hora_inicio) && { backgroundColor: '#ccc' }]}
               onPress={() => router.navigate('/driver/route')}
-              disabled={!isWithinBoardingWindow(currentBoarding.hora_inicio)}
+              //disabled={!isWithinBoardingWindow(currentBoarding.hora_inicio)}
             >
               <Text style={styles.startButtonText}>Iniciar Ruta</Text>
             </TouchableOpacity>
