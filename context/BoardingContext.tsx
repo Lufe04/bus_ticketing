@@ -39,6 +39,7 @@ type RouteEntry = {
   from: string;
   to: string;
   duration: string;
+  status: 'completado' | 'no_realizado' | 'en_curso';
 };
 
 // Interfaz del contexto
@@ -140,30 +141,46 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     year?: number
   ): Record<string, RouteEntry[]> => {
     const grouped: Record<string, RouteEntry[]> = {};
+    const now = new Date();
 
     boardings
-      .filter(b => b.estado === 'finalizado')
-      .filter(b => {
+      .filter((b) => {
         const date = b.hora_inicio.toDate();
         return (
           (!month || date.getMonth() + 1 === month) &&
           (!year || date.getFullYear() === year)
         );
       })
-      .forEach(b => {
+      .forEach((b) => {
         const dateObj = b.hora_inicio.toDate();
-
         const dateKey = dateObj.toLocaleDateString('es-CO', {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
         });
 
-        const durationMs = b.hora_fin.toDate().getTime() - b.hora_inicio.toDate().getTime();
+        const horaInicio = b.hora_inicio.toDate();
+        const horaFin = b.hora_fin.toDate();
+
+        // Calcular duración
+        const durationMs = horaFin.getTime() - horaInicio.getTime();
         const durationMinutes = Math.floor(durationMs / 60000);
         const hours = Math.floor(durationMinutes / 60);
         const minutes = durationMinutes % 60;
-        const durationString = minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+        const durationString =
+          minutes === 0 ? `${hours} h` : `${hours} h ${minutes} min`;
+
+        // Determinar estado
+        let status: RouteEntry['status'];
+        if (b.estado === 'finalizado') {
+          status = 'completado';
+        } else if (b.estado === 'en_curso') {
+          status = 'en_curso';
+        } else if (b.estado === 'programado' && horaFin < now) {
+          status = 'no_realizado';
+        } else {
+          return; // Excluir viajes programados futuros
+        }
 
         if (!grouped[dateKey]) grouped[dateKey] = [];
 
@@ -171,6 +188,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
           from: b.desde,
           to: b.hasta,
           duration: durationString,
+          status,
         });
       });
 
