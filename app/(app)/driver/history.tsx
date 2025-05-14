@@ -1,56 +1,59 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import UserMenuModal from '../../../components/UserModal';
+import { useBoarding } from '../../../context/BoardingContext';
+import { useAuth } from '../../../context/AuthContext';
+
+const months = [
+  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+];
 
 export default function DriverHistoryScreen() {
   const router = useRouter();
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth()); 
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const completedRoutes = [
-    {
-      date: '4 de Abril de 2025',
-      routes: [
-        { from: 'Cartagena', to: 'Sincelejo', duration: '4 h' },
-        { from: 'Sincelejo', to: 'Montería', duration: '2 h 30 min' },
-      ],
-    },
-    {
-      date: '9 de Abril de 2025',
-      routes: [
-        { from: 'Bogotá', to: 'Tunja', duration: '3 h' },
-        { from: 'Tunja', to: 'Sogamoso', duration: '1 h 30 min' },
-        { from: 'Sogamoso', to: 'Yopal', duration: '6 h' },
-      ],
-    },
-    {
-      date: '14 de Abril de 2025',
-      routes: [
-        { from: 'Bogotá', to: 'Tunja', duration: '3 h' },
-      ],
-    },
-  ];
+  const { userData } = useAuth();
+  const { getCompletedBoardingsGrouped } = useBoarding();
+
+  const nombreUsuario = userData?.nombre || 'Usuario';
+  const inicial = nombreUsuario.charAt(0).toUpperCase();
+
+  const groupedBoardings = getCompletedBoardingsGrouped(selectedMonth + 1, selectedYear); 
+
+  const completedRoutes = Object.entries(groupedBoardings).map(([date, routes]) => ({
+    date,
+    routes
+  }));
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>Hola, Usuario</Text>
+          <Text style={styles.headerTitle}>Hola, {nombreUsuario}</Text>
           <Text style={styles.headerSubtitle}>Visualiza tus rutas completadas</Text>
         </View>
-        <View style={styles.userCircle}>
-          <Text style={styles.userInitial}>U</Text>
-        </View>
+        <TouchableOpacity style={styles.userCircle} onPress={() => setMenuVisible(true)}>
+          <Text style={styles.userInitial}>{inicial}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Filtros */}
       <View style={styles.filters}>
-        <TouchableOpacity style={styles.dropdown}>
-          <Text style={styles.dropdownText}>Abril</Text>
+        <TouchableOpacity style={styles.dropdown} onPress={() => {
+          const nextMonth = (selectedMonth + 1) % 12;
+          setSelectedMonth(nextMonth);
+        }}>
+          <Text style={styles.dropdownText}>{months[selectedMonth]}</Text>
           <MaterialIcons name="keyboard-arrow-down" size={20} color="#000" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.dropdown}>
-          <Text style={styles.dropdownText}>2025</Text>
+        <TouchableOpacity style={styles.dropdown} onPress={() => setSelectedYear(prev => prev + 1)}>
+          <Text style={styles.dropdownText}>{selectedYear}</Text>
           <MaterialIcons name="keyboard-arrow-down" size={20} color="#000" />
         </TouchableOpacity>
       </View>
@@ -62,13 +65,13 @@ export default function DriverHistoryScreen() {
             {group.routes.map((route, idx) => (
               <View key={idx} style={styles.routeCard}>
                 <View style={styles.routeHeader}>
-                  <MaterialIcons name="directions-bus" size={24} color='rgba(50, 50, 50, 0.8)' style={{ marginRight: 8 }} />
+                  <MaterialIcons name="directions-bus" size={24} color="rgba(50, 50, 50, 0.8)" />
                   <Text style={styles.routeCity}>{route.from}</Text>
-                  <MaterialIcons name="east" size={20} color='rgba(50, 50, 50, 0.8)' style={{ marginHorizontal: 6 }} />
+                  <MaterialIcons name="east" size={20} color="rgba(50, 50, 50, 0.8)" style={{ marginHorizontal: 6 }} />
                   <Text style={styles.routeCity}>{route.to}</Text>
                 </View>
                 <View style={styles.routeFooter}>
-                  <MaterialCommunityIcons name="timer-outline" size={24} color='rgba(50, 50, 50, 0.8)' style={{ marginRight: 6 }} />
+                  <MaterialCommunityIcons name="timer-outline" size={24} color="rgba(50, 50, 50, 0.8)" />
                   <Text style={styles.routeDuration}>Duración: {route.duration}</Text>
                   <View style={styles.statusBadge}>
                     <Text style={styles.statusText}>Completado</Text>
@@ -83,18 +86,20 @@ export default function DriverHistoryScreen() {
       {/* Footer */}
       <View style={styles.navbar}>
         <View style={styles.navItem}>
-          <MaterialCommunityIcons name="text-box-outline" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver/routes')}/>
+          <MaterialCommunityIcons name="text-box-outline" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver/routes')} />
           <Text style={styles.navLabel}>Mis Rutas</Text>
         </View>
         <View style={styles.navItem}>
-          <MaterialCommunityIcons name="home-outline" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver')}/>
+          <MaterialCommunityIcons name="home-outline" size={40} style={styles.navbarIcon} onPress={() => router.navigate('/driver')} />
           <Text style={styles.navLabel}>Inicio</Text>
         </View>
         <View style={styles.navItem}>
-          <MaterialIcons name="event-available" size={40} style={styles.navbarIconActive}/>
+          <MaterialIcons name="event-available" size={40} style={styles.navbarIconActive} />
           <Text style={styles.navLabelActive}>Historial</Text>
         </View>
       </View>
+
+      <UserMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }

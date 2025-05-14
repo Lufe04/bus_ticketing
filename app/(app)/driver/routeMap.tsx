@@ -59,7 +59,7 @@ export default function RouteInProgressScreen() {
           <Text style={styles.actionText}>Marcar Parada</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton}>
-          <MaterialCommunityIcons name="flag-outline" size={38} color="#fff" onPress={() => router.navigate("/driver/summary")}/>
+          <MaterialCommunityIcons name="flag-outline" size={38} color="#fff" onPress={() => router.navigate("/driver")} />
           <Text style={styles.actionText}>Finalizar Viaje</Text>
         </TouchableOpacity>
       </View>
