@@ -1,5 +1,13 @@
 {
   "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "0fc3cd8c-bf64-4747-aec7-26839819adbf"
+      },
+      "router": {
+        "origin": false
+      }
+    },
     "name": "bus_ticketing",
     "slug": "bus_ticketing",
     "version": "1.0.0",
@@ -15,8 +23,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
     },
+    "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCZsZ1lmSd6KZjmb-yCPtiPmShUMSAp3xw"
+        }
+      },
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -36,6 +52,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "fer44"
   }
 }
