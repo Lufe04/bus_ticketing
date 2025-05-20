@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
 // Definición de interfaces
-interface Message {
+export interface Message {
+  id?: string;
   text: string;
   sender: "user" | "bot";
   timestamp: string;
@@ -22,27 +23,46 @@ const ChatContext = createContext<ChatContextType>({
   clearMessages: () => {},
 });
 
-// API Key de Gemini
-const GEMINI_API_KEY = "AIzaSyCFPEdbkbO_90iTylK8KrsOtQzKSVCxiNE";
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+// API Key de Gemini ahora desde variables de entorno
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+const GEMINI_API_URL = process.env.EXPO_PUBLIC_GEMINI_API_URL || 
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
 export const ChatContextProvider = ({ children }: { children: React.ReactNode }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Inicializar con mensaje de bienvenida
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome-' + Date.now(),
+        text: '¡Hola! No dudes en escribir tu pregunta sobre nuestros servicios de bus',
+        sender: "bot",
+        timestamp: new Date().toISOString()
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, []);
 
   // Función para enviar un mensaje y obtener respuesta de Gemini
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
+    console.log("Enviando mensaje en contexto:", text);
+    console.log("API KEY disponible:", !!GEMINI_API_KEY);
+
     // Crear y añadir el mensaje del usuario
     const userMessage: Message = {
+      id: 'user-' + Date.now(),
       text,
       sender: "user",
       timestamp: new Date().toISOString(),
     };
-
+    
+    // Actualizar mensajes con el mensaje del usuario
+    setMessages(prevMessages => [...prevMessages, userMessage]);
     setIsLoading(true);
-    setMessages((prev) => [...prev, userMessage]);
 
     try {
       // Llamada a la API de Gemini
@@ -63,31 +83,48 @@ export const ChatContextProvider = ({ children }: { children: React.ReactNode })
         }),
       });
 
-      const data = await response.json();
-      
-      // Extraer el texto de la respuesta
-      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
-                          "Lo siento, no pude procesar tu pregunta en este momento.";
+      if (!response.ok) {
+        throw new Error(`Error API: ${response.status} ${response.statusText}`);
+      }
 
-      // Crear y añadir el mensaje del bot
+      const data = await response.json();
+      console.log("Respuesta recibida:", JSON.stringify(data).slice(0, 100) + "...");
+      
+      // Extraer la respuesta de la API
+      let botResponseText = "Lo siento, no pude procesar tu solicitud.";
+      
+      if (data.candidates && 
+          data.candidates[0] && 
+          data.candidates[0].content && 
+          data.candidates[0].content.parts && 
+          data.candidates[0].content.parts[0] && 
+          data.candidates[0].content.parts[0].text) {
+        botResponseText = data.candidates[0].content.parts[0].text;
+      }
+      
+      // Crear mensaje del bot
       const botMessage: Message = {
-        text: responseText,
+        id: 'bot-' + Date.now(),
+        text: botResponseText,
         sender: "bot",
         timestamp: new Date().toISOString(),
       };
-
-      setMessages((prev) => [...prev, botMessage]);
+      
+      // Actualizar los mensajes con la respuesta del bot
+      setMessages(prevMessages => [...prevMessages, botMessage]);
+      
     } catch (error) {
       console.error("Error al comunicarse con Gemini API:", error);
       
-      // Mensaje de error en caso de fallo
+      // Mensaje de error
       const errorMessage: Message = {
-        text: "Lo siento, hubo un problema al conectar con nuestro servicio. Por favor, inténtalo de nuevo más tarde.",
+        id: 'error-' + Date.now(),
+        text: "Lo siento, ha ocurrido un error al procesar tu solicitud. Por favor, intenta más tarde.",
         sender: "bot",
         timestamp: new Date().toISOString(),
       };
       
-      setMessages((prev) => [...prev, errorMessage]);
+      setMessages(prevMessages => [...prevMessages, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -113,3 +150,5 @@ export const ChatContextProvider = ({ children }: { children: React.ReactNode })
 
 // Hook personalizado para usar el contexto
 export const useChatContext = () => useContext(ChatContext);
+
+export default ChatContext;

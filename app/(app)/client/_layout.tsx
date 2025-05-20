@@ -53,7 +53,8 @@ export default function TabLayout() {
       const loadData = async () => {
         try {
           await refreshUserData();
-          if (!userData) {
+          const success = !!userData; // Check if userData is populated after refresh
+          if (!success) {
             setRetryCount(prev => prev + 1);
           }
         } catch (error) {
@@ -146,7 +147,6 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* Las definiciones de Tabs.Screen se mantienen igual */}
       <Tabs.Screen
         name="index"
         options={{
@@ -157,6 +157,7 @@ export default function TabLayout() {
         }}
       />
       
+      {/* El resto de las pantallas se mantienen igual */}
       <Tabs.Screen
         name="saldoScreen"
         options={{
@@ -167,7 +168,47 @@ export default function TabLayout() {
         }}
       />
 
-      {/* El resto de las pantallas se mantienen igual */}
+      <Tabs.Screen
+        name="mapScreen"
+        options={{
+          title: "Mapa",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="map-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="chatScreen"
+        options={{
+          title: "Chat",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="chatbubbles-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* Screens que no aparecen en la navegación inferior */}
+      <Tabs.Screen
+        name="selectScreen"
+        options={{
+          href: null, // No aparece en la navegación
+        }}
+      />
+      
+      <Tabs.Screen
+        name="ticketsScreen"
+        options={{
+          href: null, // No aparece en la navegación
+        }}
+      />
+      
+      <Tabs.Screen
+        name="favoriteScreen"
+        options={{
+          href: null, // No aparece en la navegación
+        }}
+      />
     </Tabs>
   );
 }

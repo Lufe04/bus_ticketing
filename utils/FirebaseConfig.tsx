@@ -3,13 +3,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCYVcUAhixWRoyWx6-h9RaUh4DhNkBPuNo",
-    authDomain: "ticketing-dam.firebaseapp.com",
-    projectId: "ticketing-dam",
-    storageBucket: "ticketing-dam.firebasestorage.app",
-    messagingSenderId: "932841118187",
-    appId: "1:932841118187:web:11d14f2a925fb18da9a1ae",
-    measurementId: "G-KNFJ8BGCK8"
+    apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+    authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDERID,
+    appId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
+    measurementId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID
   };
 
 // Inicializar Firebase

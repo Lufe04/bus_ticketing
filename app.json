@@ -20,6 +20,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.fer44.busticketing",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -29,10 +30,10 @@
       ]
     },
     "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCZsZ1lmSd6KZjmb-yCPtiPmShUMSAp3xw"
-        }
-      },
+      "googleMaps": {
+        "apiKey": "AIzaSyCZsZ1lmSd6KZjmb-yCPtiPmShUMSAp3xw"
+      }
+    },
     "web": {
       "bundler": "metro",
       "output": "static",
