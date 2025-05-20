@@ -28,6 +28,11 @@
         "NOTIFICATIONS"
       ]
     },
+    "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCZsZ1lmSd6KZjmb-yCPtiPmShUMSAp3xw"
+        }
+      },
     "web": {
       "bundler": "metro",
       "output": "static",
