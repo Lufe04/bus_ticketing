@@ -190,38 +190,6 @@ export default function SaldoScreen() {
         </View>
       </ScrollView>
       
-      {/* Navigation Bar */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/(app)/client')}
-        >
-          <Ionicons name="home-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Inicio</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="cash" size={24} color={COLORS.skyBlue} />
-          <Text style={[styles.navText, styles.activeNavText]}>Saldo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/client/mapScreen')}
-        >
-          <Ionicons name="map-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Mapa</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => router.push('/client/chatScreen')}
-        >
-          <Ionicons name="chatbubbles-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Chat</Text>
-        </TouchableOpacity>
-      </View>
-      
       {/* Modal de Recarga/Descuento */}
       <Modal
         visible={isModalVisible}

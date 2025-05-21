@@ -164,38 +164,7 @@ export default function MapScreen() {
       <View style={styles.content}>
         {content}
       </View>
-      
-      {/* Navigation Bar */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/(app)/client')}
-        >
-          <Ionicons name="home-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Inicio</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/client/saldoScreen')}
-        >
-          <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Saldo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="map" size={24} color={COLORS.skyBlue} />
-          <Text style={[styles.navText, styles.activeNavText]}>Mapa</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => router.push('/client/favoritesScreen')}
-        >
-          <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Favoritos</Text>
-        </TouchableOpacity>
-      </View>
+    
     </SafeAreaView>
   );
 }

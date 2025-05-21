@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../context/AuthContext';
-import { useChatContext } from '../../../context/chatContext';
+import { useChatContext } from '../../../context/ChatContext';
 
 // Paleta de colores consistente con el resto de la aplicación
 const COLORS = {
@@ -224,40 +224,6 @@ export default function ChatScreen() {
           <Ionicons name="trash-outline" size={20} color={COLORS.white} />
           <Text style={styles.clearButtonText}>Limpiar chat</Text>
         </TouchableOpacity>
-      )}
-      
-      {/* Navigation Bar - Only if keyboard is not visible */}
-      {!keyboardVisible && (
-        <View style={styles.bottomNavigation}>
-          <TouchableOpacity 
-            style={styles.navItem} 
-            onPress={() => router.push('/(app)/client')}
-          >
-            <Ionicons name="home-outline" size={24} color={COLORS.gray} />
-            <Text style={styles.navText}>Inicio</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.navItem} 
-            onPress={() => router.push('/client/saldoScreen')}
-          >
-            <Ionicons name="cash-outline" size={24} color={COLORS.gray} />
-            <Text style={styles.navText}>Saldo</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.navItem} 
-            onPress={() => router.push('/client/mapScreen')}
-          >
-            <Ionicons name="map-outline" size={24} color={COLORS.gray} />
-            <Text style={styles.navText}>Mapa</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.navItem}>
-            <Ionicons name="chatbubbles" size={24} color={COLORS.skyBlue} />
-            <Text style={[styles.navText, styles.activeNavText]}>Chat</Text>
-          </TouchableOpacity>
-        </View>
       )}
     </SafeAreaView>
   );
