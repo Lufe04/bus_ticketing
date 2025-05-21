@@ -1,389 +1,336 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-  Keyboard,
-  ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useAuth } from '../../../context/AuthContext';
-import { useChatContext } from '../../../context/ChatContext';
+    View,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    FlatList,
+    Text as RNText,
+    KeyboardAvoidingView,
+    Platform,
+    Keyboard,
+    SafeAreaView,
+    StatusBar
+} from "react-native";
+import { useRouter, useNavigation } from "expo-router";
+import { useChatContext } from "@/context/ChatContext";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Paleta de colores consistente con el resto de la aplicación
 const COLORS = {
   primaryBlue: '#131A2E',
   skyBlue: '#20ADF5',
+  green: '#4CAF50',
   gray: '#989898',
-  lightGray: '#F2F4F5',
   white: '#FFFFFF',
-  mediumGray: '#AAAAAA',
-  chatBubbleGray: '#D9D9D9',
-  errorRed: '#FF6B6B',
+  black: '#000000',
+  darkGray: '#333333',
+  charcoalGray: '#2E2E2E'
 };
 
-// Lista de temas permitidos para filtrar preguntas irrelevantes
-const ALLOWED_TOPICS = [
-  'bus', 'buses', 'ruta', 'rutas', 'viaje', 'viajes', 'ticket', 'tickets', 'tiquete', 'tiquetes',
-  'hora', 'horario', 'horarios', 'salida', 'llegada', 'terminal', 'estación', 'parada',
-  'precio', 'tarifa', 'tarifas', 'costo', 'costos', 'pago', 'pagos', 'saldo',
-  'reembolso', 'cancelar', 'cancelación', 'cambio', 'reprogramar',
-  'equipaje', 'maleta', 'maletas', 'bulto', 'bultos', 'asiento', 'asientos',
-  'reserva', 'reservación', 'compra', 'billete', 'billetes',
-  'discapacidad', 'accesibilidad', 'transporte', 'transbordo',
-];
+const ChatScreen = () => {
+    const router = useRouter();
+    const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
+    const { messages, isLoading, sendMessage, clearMessages } = useChatContext();
+    const [message, setMessage] = useState("");
+    const flatListRef = useRef<FlatList>(null);
+    const [keyboardVisible, setKeyboardVisible] = useState(false);
 
-export default function ChatScreen() {
-  const { userData } = useAuth();
-  const router = useRouter();
-  const scrollViewRef = useRef<ScrollView>(null);
-  
-  // Usar el contexto de chat para manejar los mensajes
-  const { messages: contextMessages, isLoading, sendMessage: sendGeminiMessage, clearMessages } = useChatContext();
-  
-  const [newMessage, setNewMessage] = useState('');
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-  const [offTopicWarning, setOffTopicWarning] = useState(false);
-
-  // Convertir mensajes del contexto al formato local para mostrarlos
-  const formattedMessages = [
-    // Mensaje inicial de bienvenida
-    {
-      id: 'welcome',
-      text: '¡Hola! No dudes en escribir tu pregunta sobre nuestros servicios de transporte en bus.',
-      sender: 'support' as const,
-      timestamp: new Date()
-    },
-    // Mensajes del contexto
-    ...contextMessages.map((msg, index) => ({
-      id: msg.timestamp,
-      text: msg.text,
-      sender: msg.sender === 'user' ? 'user' as const : 'support' as const,
-      timestamp: new Date(msg.timestamp)
-    }))
-  ];
-
-  // Detectar cuando el teclado aparece/desaparece
-  useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
-      () => {
-        setKeyboardVisible(true);
-        scrollToBottom();
-      }
-    );
-    const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
-      () => {
-        setKeyboardVisible(false);
-      }
-    );
-
-    return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
-    };
-  }, []);
-
-  // Hacer scroll automático al final cuando llegan nuevos mensajes
-  useEffect(() => {
-    scrollToBottom();
-  }, [formattedMessages, isLoading]);
-
-  // Función para verificar si el mensaje está relacionado con temas de buses
-  const isRelevantTopic = (text: string): boolean => {
-    const lowerText = text.toLowerCase();
-    // Verificar si alguna palabra clave está en el mensaje
-    return ALLOWED_TOPICS.some(topic => lowerText.includes(topic)) || 
-           lowerText.length < 15; // Mensajes cortos se permiten sin filtrar
-  };
-
-  // Función para enviar un mensaje
-  const handleSendMessage = async () => {
-    if (newMessage.trim() === '') return;
-    
-    // Verificar si el mensaje está dentro de los temas permitidos
-    if (!isRelevantTopic(newMessage)) {
-      setOffTopicWarning(true);
-      setTimeout(() => setOffTopicWarning(false), 3000);
-      return;
-    }
-    
-    // Limpiar el campo de mensaje y enviar a través del contexto
-    const messageText = newMessage.trim();
-    setNewMessage('');
-    setOffTopicWarning(false);
-    
-    // Enviar mensaje a través del contexto (que usará Gemini API)
-    await sendGeminiMessage(messageText);
-  };
-
-  // Función para hacer scroll al final de la conversación
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      scrollViewRef.current?.scrollToEnd({ animated: true });
-    }, 100);
-  };
-
-  // Obtener el nombre del usuario desde userData
-  const userName = userData?.nombre || 'Usuario';
-  // Primera letra del usuario para el avatar
-  const userInitial = userName ? userName.charAt(0).toUpperCase() : 'U';
-
-  return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Hola, {userName}</Text>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{userInitial}</Text>
-        </View>
-      </View>
-      
-      {/* Chat area */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.keyboardAvoidingView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={styles.messagesContainer}
-          showsVerticalScrollIndicator={false}
-        >
-          {formattedMessages.map((message) => (
-            <View
-              key={message.id}
-              style={[
-                styles.messageBubble,
-                message.sender === 'user' ? styles.userBubble : styles.supportBubble
-              ]}
-            >
-              <Text style={styles.messageText}>{message.text}</Text>
-            </View>
-          ))}
-          
-          {/* Indicador de carga mientras se espera respuesta */}
-          {isLoading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color={COLORS.skyBlue} />
-              <Text style={styles.loadingText}>Consultando...</Text>
-            </View>
-          )}
-          
-          {/* Advertencia de tema fuera de contexto */}
-          {offTopicWarning && (
-            <View style={styles.warningContainer}>
-              <Text style={styles.warningText}>
-                Por favor, haz preguntas relacionadas con nuestros servicios de transporte en bus.
-              </Text>
-            </View>
-          )}
-        </ScrollView>
+    // Detectar cuando el teclado aparece/desaparece
+    useEffect(() => {
+        const keyboardDidShowListener = Keyboard.addListener(
+            'keyboardDidShow',
+            () => {
+                setKeyboardVisible(true);
+                
+                // Ocultar TabBar cuando aparece el teclado
+                navigation.setOptions({
+                    tabBarStyle: { display: 'none' }
+                });
+                
+                setTimeout(() => {
+                    if (flatListRef.current) {
+                        flatListRef.current.scrollToEnd({ animated: true });
+                    }
+                }, 100);
+            }
+        );
         
-        {/* Message input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe aquí"
-            value={newMessage}
-            onChangeText={setNewMessage}
-            multiline={true}
-            maxLength={500}
-          />
-          <TouchableOpacity 
-            style={styles.sendButton}
-            onPress={handleSendMessage}
-            disabled={newMessage.trim() === '' || isLoading}
-          >
-            <Ionicons 
-              name="send" 
-              size={24} 
-              color={(newMessage.trim() === '' || isLoading) ? COLORS.mediumGray : COLORS.white} 
-            />
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-      
-      {/* Botón para limpiar la conversación */}
-      {formattedMessages.length > 1 && !keyboardVisible && (
-        <TouchableOpacity 
-          style={styles.clearButton}
-          onPress={clearMessages}
-        >
-          <Ionicons name="trash-outline" size={20} color={COLORS.white} />
-          <Text style={styles.clearButtonText}>Limpiar chat</Text>
-        </TouchableOpacity>
-      )}
-    </SafeAreaView>
-  );
-}
+        const keyboardDidHideListener = Keyboard.addListener(
+            'keyboardDidHide',
+            () => {
+                setKeyboardVisible(false);
+                
+                // Mostrar TabBar cuando desaparece el teclado
+                navigation.setOptions({
+                    tabBarStyle: undefined // Restablece al estilo predeterminado
+                });
+            }
+        );
 
+        return () => {
+            keyboardDidShowListener.remove();
+            keyboardDidHideListener.remove();
+            // Restaurar la visibilidad del TabBar al desmontar
+            navigation.setOptions({
+                tabBarStyle: undefined
+            });
+        };
+    }, [navigation]);
+
+    const handleSend = async () => {
+        if (!message.trim()) return;
+        await sendMessage(message);
+        setMessage("");
+        
+        setTimeout(() => {
+            if (flatListRef.current) {
+                flatListRef.current.scrollToEnd({ animated: true });
+            }
+        }, 200);
+    };
+
+    return (
+        <SafeAreaView style={styles.safeArea}>
+            <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
+            
+            <KeyboardAvoidingView
+                behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={styles.keyboardAvoid}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+            >
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color={COLORS.white} />
+                    </TouchableOpacity>
+                    
+                    <RNText style={styles.headerTitle}>Asistente de viajes</RNText>
+                    
+                    {messages.length > 0 && (
+                        <TouchableOpacity onPress={clearMessages} style={styles.clearButton}>
+                            <Ionicons name="trash-outline" size={22} color={COLORS.white} />
+                        </TouchableOpacity>
+                    )}
+                </View>
+                
+                {/* Contenedor principal (flex: 1) */}
+                <View style={styles.contentContainer}>
+                    {/* Lista de mensajes */}
+                    <FlatList
+                        ref={flatListRef}
+                        data={messages}
+                        keyExtractor={(item) => item.key}
+                        renderItem={({ item }) => (
+                            <View
+                                style={[
+                                    styles.messageBubble,
+                                    item.sender === "user" ? styles.userBubble : styles.botBubble,
+                                ]}
+                            >
+                                <RNText 
+                                    style={[
+                                        styles.messageText,
+                                        item.sender === "user" ? styles.userText : styles.botText
+                                    ]}
+                                >
+                                    {item.text}
+                                </RNText>
+                            </View>
+                        )}
+                        contentContainerStyle={styles.messageListContainer}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <Ionicons name="chatbubbles-outline" size={64} color={COLORS.skyBlue} style={styles.emptyIcon} />
+                                <RNText style={styles.loadingText}>
+                                    {isLoading ? "Cargando..." : "No hay mensajes aún. Haz tu primera pregunta sobre nuestros servicios de bus."}
+                                </RNText>
+                            </View>
+                        }
+                        onLayout={() => {
+                            if (messages.length > 0) {
+                                flatListRef.current?.scrollToEnd({ animated: true });
+                            }
+                        }}
+                        onContentSizeChange={() => {
+                            if (messages.length > 0) {
+                                flatListRef.current?.scrollToEnd({ animated: true });
+                            }
+                        }}
+                    />
+
+                    {/* Indicador de carga */}
+                    {isLoading && (
+                        <View style={styles.loadingIndicator}>
+                            <Ionicons name="ellipsis-horizontal" size={30} color={COLORS.skyBlue} />
+                        </View>
+                    )}
+                </View>
+                
+                {/* Input - ahora es parte del KeyboardAvoidingView */}
+                <View style={styles.inputContainer}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Escribe un mensaje..."
+                        placeholderTextColor={COLORS.gray}
+                        value={message}
+                        onChangeText={setMessage}
+                        onSubmitEditing={handleSend}
+                        multiline={true}
+                        maxLength={500}
+                    />
+                    <TouchableOpacity 
+                        onPress={handleSend} 
+                        disabled={isLoading || !message.trim()} 
+                        style={[
+                            styles.sendButton,
+                            (isLoading || !message.trim()) && styles.disabledButton
+                        ]}
+                    >
+                        <Ionicons 
+                            name="send" 
+                            size={24} 
+                            color={(isLoading || !message.trim()) ? COLORS.gray : COLORS.skyBlue} 
+                        />
+                    </TouchableOpacity>
+                </View>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
+    );
+};
+
+// Estilos rediseñados para una estructura más limpia
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  header: {
-    backgroundColor: COLORS.primaryBlue,
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E0E0E0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.primaryBlue,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  messagesContainer: {
-    padding: 16,
-    paddingBottom: 20,
-  },
-  messageBubble: {
-    padding: 12,
-    borderRadius: 16,
-    maxWidth: '80%',
-    marginBottom: 12,
-  },
-  supportBubble: {
-    backgroundColor: COLORS.chatBubbleGray,
-    alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
-  },
-  userBubble: {
-    backgroundColor: COLORS.skyBlue,
-    alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
-  },
-  messageText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 16,
-    padding: 10,
-    marginBottom: 12,
-  },
-  loadingText: {
-    marginLeft: 8,
-    color: COLORS.gray,
-    fontSize: 14,
-  },
-  warningContainer: {
-    backgroundColor: COLORS.errorRed,
-    borderRadius: 16,
-    padding: 12,
-    marginBottom: 12,
-    alignSelf: 'center',
-    maxWidth: '90%',
-  },
-  warningText: {
-    color: COLORS.white,
-    fontSize: 14,
-    textAlign: 'center',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    paddingHorizontal: 16,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: COLORS.white,
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 10,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: COLORS.lightGray,
-    maxHeight: 100,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.skyBlue,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 70,
-    backgroundColor: COLORS.primaryBlue,
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 5,
-  },
-  clearButtonText: {
-    color: COLORS.white,
-    fontSize: 14,
-    marginLeft: 5,
-  },
-  bottomNavigation: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    height: 60,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-  },
-  navItem: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 2,
-  },
-  activeNavText: {
-    color: COLORS.skyBlue,
-  },
+    safeArea: {
+        flex: 1,
+        backgroundColor: COLORS.primaryBlue,
+    },
+    keyboardAvoid: {
+        flex: 1,
+        backgroundColor: "#F5F5F5",
+    },
+    contentContainer: {
+        flex: 1,
+        position: 'relative'
+    },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: COLORS.primaryBlue,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+    },
+    backButton: {
+        padding: 5,
+    },
+    clearButton: {
+        padding: 5,
+    },
+    headerTitle: {
+        color: COLORS.white,
+        fontSize: 20,
+        fontWeight: "600",
+    },
+    messageListContainer: {
+        padding: 16,
+        flexGrow: 1,
+        paddingBottom: 20,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingTop: 60,
+        paddingBottom: 20,
+    },
+    emptyIcon: {
+        marginBottom: 20,
+    },
+    messageBubble: {
+        maxWidth: "80%",
+        padding: 12,
+        borderRadius: 16,
+        marginVertical: 6,
+    },
+    userBubble: { 
+        alignSelf: "flex-end", 
+        backgroundColor: COLORS.skyBlue,
+        borderBottomRightRadius: 4,
+        marginLeft: 40,
+    },
+    botBubble: { 
+        alignSelf: "flex-start", 
+        backgroundColor: COLORS.primaryBlue,
+        borderBottomLeftRadius: 4,
+        marginRight: 40,
+    },
+    messageText: { 
+        fontSize: 16,
+        lineHeight: 22,
+    },
+    userText: {
+        color: COLORS.white,
+    },
+    botText: {
+        color: COLORS.white,
+    },
+    loadingIndicator: {
+        position: 'absolute',
+        bottom: 10,
+        left: 20,
+        padding: 8,
+        borderRadius: 16,
+        backgroundColor: 'rgba(0,0,0,0.05)',
+    },
+    loadingText: { 
+        textAlign: "center", 
+        color: COLORS.gray, 
+        marginVertical: 20,
+        paddingHorizontal: 30,
+        fontSize: 16,
+    },
+    inputContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 12,
+        borderTopWidth: 1,
+        borderTopColor: "#E5E5E5",
+        backgroundColor: COLORS.white,
+    },
+    input: {
+        flex: 1,
+        backgroundColor: "#F5F5F5",
+        color: COLORS.black,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 24,
+        fontSize: 16,
+        maxHeight: 100,
+        borderWidth: 1,
+        borderColor: "#E0E0E0",
+    },
+    sendButton: { 
+        marginLeft: 10,
+        height: 44,
+        width: 44,
+        borderRadius: 22,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: COLORS.white,
+        shadowColor: COLORS.black,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    disabledButton: {
+        opacity: 0.5,
+    }
 });
+
+export default ChatScreen;

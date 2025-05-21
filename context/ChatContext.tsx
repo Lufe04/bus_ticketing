@@ -1,115 +1,120 @@
 import React, { createContext, useContext, useState } from "react";
+import { APIResponse } from "@/interfaces/Responses";
+import { Message } from "../interfaces/AppInterfaces";
 
-// Definición de interfaces
-interface Message {
-  text: string;
-  sender: "user" | "bot";
-  timestamp: string;
+interface MessageWithKey extends Message {
+    key: string;
+    idts: string;
 }
 
 interface ChatContextType {
-  messages: Message[];
-  isLoading: boolean;
-  sendMessage: (text: string) => Promise<void>;
-  clearMessages: () => void;
+    messages: MessageWithKey[];
+    isLoading: boolean;
+    clearMessages: () => void;
+    sendMessage: (text: string) => Promise<void>;
 }
 
-// Creación del contexto con valores predeterminados
 const ChatContext = createContext<ChatContextType>({
-  messages: [],
-  isLoading: false,
-  sendMessage: async () => {},
-  clearMessages: () => {},
+    messages: [],
+    isLoading: false,
+    clearMessages: () => {},
+    sendMessage: async () => {},
 });
 
-// API Key de Gemini
-const GEMINI_API_KEY = "AIzaSyCFPEdbkbO_90iTylK8KrsOtQzKSVCxiNE";
-const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
-
 export const ChatContextProvider = ({ children }: { children: React.ReactNode }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+    const [messages, setMessages] = useState<MessageWithKey[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
-  // Función para enviar un mensaje y obtener respuesta de Gemini
-  const sendMessage = async (text: string) => {
-    if (!text.trim()) return;
-
-    // Crear y añadir el mensaje del usuario
-    const userMessage: Message = {
-      text,
-      sender: "user",
-      timestamp: new Date().toISOString(),
+    const clearMessages = () => {
+        setMessages([]);
     };
 
-    setIsLoading(true);
-    setMessages((prev) => [...prev, userMessage]);
+    const sendMessage = async (text: string) => {
+        if (!text.trim()) return;
 
-    try {
-      // Llamada a la API de Gemini
-      const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [{ 
-            parts: [{ 
-              text: `Eres un asistente de soporte de una aplicación de tickets de bus.
-                     Brinda información acerca de horarios, rutas, políticas de equipaje, proceso de compra y reembolsos.
-                     Responde de manera concisa y amigable.
-                     Pregunta: ${text}`
-            }] 
-          }]
-        }),
-      });
+        // Crear mensaje del usuario
+        const newMessage: MessageWithKey = {
+            idts: Date.now().toString(),
+            text,
+            sender: "user",
+            fecha: new Date().toISOString(),
+            emisor: "Usuario",
+            message: text,
+            key: Date.now().toString(),
+        };
+        
+        // IMPORTANTE: Añadir el mensaje del usuario al estado
+        setMessages(prevMessages => [...prevMessages, newMessage]);
+        
+        // Marcar como cargando (para mostrar indicador)
+        setIsLoading(true);
+        
+        try {
+            // Llamada a la API de Gemini
+            const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCFPEdbkbO_90iTylK8KrsOtQzKSVCxiNE", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ 
+                    contents: [{ 
+                        parts: [{ 
+                            text: `Eres un asistente de soporte de una aplicación de tickets de bus.
+                                  Brinda información acerca de horarios, rutas, políticas de equipaje, proceso de compra y reembolsos.
+                                  Responde de manera concisa y amigable.
+                                  Pregunta: ${text}` 
+                        }] 
+                    }] 
+                }),
+            });
+            
+            // Procesar respuesta
+            const data: APIResponse = await response.json();
+            
+            // Extraer el texto de respuesta
+            const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
+                                "Lo siento, no pude entender tu pregunta.";
+                                
+            // Crear mensaje de respuesta
+            const botMessage: MessageWithKey = {
+                idts: (Date.now() + 1).toString(),
+                text: responseText,
+                sender: "bot",
+                fecha: new Date().toISOString(),
+                emisor: "AI",
+                message: responseText,
+                key: (Date.now() + 1).toString(),
+            };
+            
+            // Añadir respuesta a los mensajes
+            setMessages(prevMessages => [...prevMessages, botMessage]);
+            
+        } catch (error) {
+            console.error("Error al enviar mensaje:", error);
+            
+            // Mensaje de error
+            const errorMessage: MessageWithKey = {
+                idts: (Date.now() + 1).toString(),
+                text: "Ha ocurrido un error. Por favor, intenta nuevamente más tarde.",
+                sender: "bot",
+                fecha: new Date().toISOString(),
+                emisor: "AI",
+                message: "Error",
+                key: (Date.now() + 1).toString(),
+            };
+            
+            setMessages(prevMessages => [...prevMessages, errorMessage]);
+        } finally {
+            // Fin de carga
+            setIsLoading(false);
+        }
+    };
 
-      const data = await response.json();
-      
-      // Extraer el texto de la respuesta
-      const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
-                          "Lo siento, no pude procesar tu pregunta en este momento.";
-
-      // Crear y añadir el mensaje del bot
-      const botMessage: Message = {
-        text: responseText,
-        sender: "bot",
-        timestamp: new Date().toISOString(),
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-    } catch (error) {
-      console.error("Error al comunicarse con Gemini API:", error);
-      
-      // Mensaje de error en caso de fallo
-      const errorMessage: Message = {
-        text: "Lo siento, hubo un problema al conectar con nuestro servicio. Por favor, inténtalo de nuevo más tarde.",
-        sender: "bot",
-        timestamp: new Date().toISOString(),
-      };
-      
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Función para limpiar todos los mensajes
-  const clearMessages = () => {
-    setMessages([]);
-  };
-
-  // Proveedor del contexto
-  return (
-    <ChatContext.Provider value={{ 
-      messages, 
-      isLoading, 
-      sendMessage,
-      clearMessages
-    }}>
-      {children}
-    </ChatContext.Provider>
-  );
+    return (
+        <ChatContext.Provider value={{ messages, isLoading, clearMessages, sendMessage }}>
+            {children}
+        </ChatContext.Provider>
+    );
 };
 
-// Hook personalizado para usar el contexto
 export const useChatContext = () => useContext(ChatContext);
