@@ -165,6 +165,10 @@ export default function MapScreen() {
       <View style={styles.fullContent}>
         {content}
       </View>
+<<<<<<< HEAD
+=======
+    
+>>>>>>> temp-fix-branch
     </SafeAreaView>
   );
 }

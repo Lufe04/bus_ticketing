@@ -63,7 +63,7 @@ export default function ClientHome() {
       'Seleccionar fecha',
       `Esta funcionalidad permitiría elegir la fecha de ${type === 'departure' ? 'salida' : 'regreso'}.`,
       [{ text: 'Entendido', style: 'default' }]
-    );
+    ); // Corregido: Se agregó el paréntesis de cierre
   };
 
   // Navegación a otras pantallas
@@ -152,172 +152,172 @@ export default function ClientHome() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola, {userName}</Text>
-          <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
-        </View>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{userInitial}</Text>
-        </View>
-      </View>
-      
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Formulario de búsqueda */}
-        <View style={styles.section}>
-          {/* Origen y destino */}
-          <View style={styles.locationRow}>
-            <View style={styles.locationField}>
-              <Text style={styles.fieldLabel}>Desde</Text>
-              <TextInput
-                style={styles.locationInput}
-                value={from}
-                onChangeText={setFrom}
-                placeholder="CSA"
-              />
-              <TextInput
-                style={styles.locationDetailsInput}
-                value={fromDetails}
-                onChangeText={setFromDetails}
-                placeholder="Ciudad, Estación o Aeropuerto"
-              />
-            </View>
-            
-            <TouchableOpacity style={styles.swapButton} onPress={swapLocations}>
-              <Ionicons name="swap-horizontal" size={20} color={COLORS.primaryBlue} />
-            </TouchableOpacity>
-            
-            <View style={styles.locationField}>
-              <Text style={styles.fieldLabel}>Hasta</Text>
-              <TextInput
-                style={styles.locationInput}
-                value={to}
-                onChangeText={setTo}
-                placeholder="CSA"
-              />
-              <TextInput
-                style={styles.locationDetailsInput}
-                value={toDetails}
-                onChangeText={setToDetails}
-                placeholder="Ciudad, Estación o Aeropuerto"
-              />
-            </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>Hola, {userName}</Text>
+            <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
           </View>
-          
-          {/* Resto del contenido... */}
-          
-          {/* Fechas */}
-          <View style={styles.datesRow}>
-            <TouchableOpacity 
-              style={styles.dateField} 
-              onPress={() => showDatePicker('departure')}
-            >
-              <Text style={styles.fieldLabel}>Fecha de salida</Text>
-              <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
-                <Text style={styles.dateText}>{departureDate}</Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.dateField, { marginRight: 0 }]} 
-              onPress={() => showDatePicker('return')}
-            >
-              <Text style={styles.fieldLabel}>Fecha de regreso</Text>
-              <View style={styles.dateContent}>
-                <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
-                <Text style={styles.dateText}>
-                  {returnDate || 'Opcional'}
-                </Text>
-              </View>
-            </TouchableOpacity>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>{userInitial}</Text>
           </View>
-          
-          {/* Pasajeros */}
-          <View style={styles.passengersContainer}>
-            <View style={styles.passengersContent}>
-              <Text style={styles.fieldLabel}>Pasajeros</Text>
-              <View style={styles.passengerInputContainer}>
-                <Ionicons name="people-outline" size={18} color={COLORS.gray} />
-                <TextInput
-                  style={styles.passengerInput}
-                  value={String(passengerCount)}
-                  onChangeText={(text) => {
-                    const num = parseInt(text.replace(/[^0-9]/g, ''));
-                    setPassengerCount(isNaN(num) ? 1 : num);
-                  }}
-                  keyboardType="numeric"
-                  maxLength={2}
-                />
-                <Text style={styles.passengerLabel}>
-                  {passengerCount === 1 ? 'Pasajero' : 'Pasajeros'}
-                </Text>
-              </View>
-            </View>
-          </View>
-          
-          {/* Botón de búsqueda */}
-          <TouchableOpacity style={styles.searchButton} onPress={navigateToSearch}>
-            <Text style={styles.searchButtonText}>Buscar</Text>
-          </TouchableOpacity>
         </View>
         
-        {/* Sección de tus tiquetes */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Tus Tiquetes</Text>
-            <TouchableOpacity onPress={navigateToTickets}>
-              <Ionicons name="arrow-forward" size={24} color={COLORS.primaryBlue} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Tiquete (no clickeable) */}
-          <View style={styles.ticketCard}>
-            <View style={styles.ticketContent}>
-              <View style={styles.ticketRow}>
-                <View style={styles.ticketIcon}>
-                  <Ionicons name="bus-outline" size={18} color={COLORS.iconGray} />
-                </View>
-                <Text style={styles.routeText}>Montería → Sincelejo</Text>
+        <ScrollView 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Formulario de búsqueda */}
+          <View style={styles.section}>
+            {/* Origen y destino */}
+            <View style={styles.locationRow}>
+              <View style={styles.locationField}>
+                <Text style={styles.fieldLabel}>Desde</Text>
+                <TextInput
+                  style={styles.locationInput}
+                  value={from}
+                  onChangeText={setFrom}
+                  placeholder="CSA"
+                />
+                <TextInput
+                  style={styles.locationDetailsInput}
+                  value={fromDetails}
+                  onChangeText={setFromDetails}
+                  placeholder="Ciudad, Estación o Aeropuerto"
+                />
               </View>
               
-              <View style={styles.ticketDetailsRow}>
-                <View style={styles.ticketDetailItem}>
-                  <Ionicons name="calendar-outline" size={16} color={COLORS.iconGray} />
-                  <Text style={styles.ticketDetailText}>28 Abr 2025</Text>
+              <TouchableOpacity style={styles.swapButton} onPress={swapLocations}>
+                <Ionicons name="swap-horizontal" size={20} color={COLORS.primaryBlue} />
+              </TouchableOpacity>
+              
+              <View style={styles.locationField}>
+                <Text style={styles.fieldLabel}>Hasta</Text>
+                <TextInput
+                  style={styles.locationInput}
+                  value={to}
+                  onChangeText={setTo}
+                  placeholder="CSA"
+                />
+                <TextInput
+                  style={styles.locationDetailsInput}
+                  value={toDetails}
+                  onChangeText={setToDetails}
+                  placeholder="Ciudad, Estación o Aeropuerto"
+                />
+              </View>
+            </View>
+            
+            {/* Fechas */}
+            <View style={styles.datesRow}>
+              <TouchableOpacity 
+                style={styles.dateField} 
+                onPress={() => showDatePicker('departure')}
+              >
+                <Text style={styles.fieldLabel}>Fecha de salida</Text>
+                <View style={styles.dateContent}>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
+                  <Text style={styles.dateText}>{departureDate}</Text>
                 </View>
-                
-                <View style={styles.ticketDetailItem}>
-                  <Ionicons name="person-outline" size={16} color={COLORS.iconGray} />
-                  <Text style={styles.ticketDetailText}>1 Asiento</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.dateField, { marginRight: 0 }]} 
+                onPress={() => showDatePicker('return')}
+              >
+                <Text style={styles.fieldLabel}>Fecha de regreso</Text>
+                <View style={styles.dateContent}>
+                  <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
+                  <Text style={styles.dateText}>
+                    {returnDate || 'Opcional'}
+                  </Text>
                 </View>
-                
-                <View style={styles.ticketDetailItem}>
-                  <Ionicons name="time-outline" size={16} color={COLORS.iconGray} />
-                  <Text style={styles.ticketDetailText}>6:00 a.m.</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Pasajeros */}
+            <View style={styles.passengersContainer}>
+              <View style={styles.passengersContent}>
+                <Text style={styles.fieldLabel}>Pasajeros</Text>
+                <View style={styles.passengerInputContainer}>
+                  <Ionicons name="people-outline" size={18} color={COLORS.gray} />
+                  <TextInput
+                    style={styles.passengerInput}
+                    value={String(passengerCount)}
+                    onChangeText={(text) => {
+                      const num = parseInt(text.replace(/[^0-9]/g, ''));
+                      setPassengerCount(isNaN(num) ? 1 : num);
+                    }}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <Text style={styles.passengerLabel}>
+                    {passengerCount === 1 ? 'Pasajero' : 'Pasajeros'}
+                  </Text>
                 </View>
               </View>
             </View>
             
-            {/* Solo el QR es clickeable */}
-            <TouchableOpacity 
-              style={styles.qrContainer}
-              onPress={() => setQrModalVisible(true)}
-            >
-              <View style={styles.qrCode}>
-                <Ionicons name="qr-code-outline" size={36} color={COLORS.white} />
-              </View>
+            {/* Botón de búsqueda */}
+            <TouchableOpacity style={styles.searchButton} onPress={navigateToSearch}>
+              <Text style={styles.searchButtonText}>Buscar</Text>
             </TouchableOpacity>
           </View>
-        </View>
+          
+          {/* Sección de tus tiquetes */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Tus Tiquetes</Text>
+              <TouchableOpacity onPress={navigateToTickets}>
+                <Ionicons name="arrow-forward" size={24} color={COLORS.primaryBlue} />
+              </TouchableOpacity>
+            </View>
+            
+            {/* Tiquete (no clickeable) */}
+            <View style={styles.ticketCard}>
+              <View style={styles.ticketContent}>
+                <View style={styles.ticketRow}>
+                  <View style={styles.ticketIcon}>
+                    <Ionicons name="bus-outline" size={18} color={COLORS.iconGray} />
+                  </View>
+                  <Text style={styles.routeText}>Montería → Sincelejo</Text>
+                </View>
+                
+                <View style={styles.ticketDetailsRow}>
+                  <View style={styles.ticketDetailItem}>
+                    <Ionicons name="calendar-outline" size={16} color={COLORS.iconGray} />
+                    <Text style={styles.ticketDetailText}>28 Abr 2025</Text>
+                  </View>
+                  
+                  <View style={styles.ticketDetailItem}>
+                    <Ionicons name="person-outline" size={16} color={COLORS.iconGray} />
+                    <Text style={styles.ticketDetailText}>1 Asiento</Text>
+                  </View>
+                  
+                  <View style={styles.ticketDetailItem}>
+                    <Ionicons name="time-outline" size={16} color={COLORS.iconGray} />
+                    <Text style={styles.ticketDetailText}>6:00 a.m.</Text>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Solo el QR es clickeable */}
+              <TouchableOpacity 
+                style={styles.qrContainer}
+                onPress={() => setQrModalVisible(true)}
+              >
+                <View style={styles.qrCode}>
+                  <Ionicons name="qr-code-outline" size={36} color={COLORS.white} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+        
+        {/* Modal del código QR */}
+        {renderQrModal()}
       </ScrollView>
-      
-      {/* Modal del código QR */}
-      {renderQrModal()}
     </SafeAreaView>
   );
 }
@@ -325,7 +325,7 @@ export default function ClientHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#f5f5f5',
   },
   loadingContainer: {
     flex: 1,
@@ -358,12 +358,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   header: {
-    backgroundColor: COLORS.primaryBlue,
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
-    paddingBottom: 20,
+    backgroundColor: '#14192e',
+    paddingTop: Platform.OS === 'android' ? 50 : 50,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -371,31 +371,28 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: 'white',
   },
   subGreeting: {
     fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.8,
+    color: 'white',
     marginTop: 4,
   },
   avatarContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E0E0E0',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e8e8e8',
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.primaryBlue,
   },
   scrollContent: {
     paddingBottom: 80, // Espacio para el tab navigator
   },
-  // El resto de estilos se mantienen igual...
   section: {
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -413,36 +410,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 12,
   },
-  swapButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
   fieldLabel: {
     fontSize: 14,
     color: COLORS.gray,
     marginBottom: 4,
   },
   locationInput: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: COLORS.primaryBlue,
     padding: 0,
+    marginVertical: 2,
   },
   locationDetailsInput: {
     fontSize: 12,
     color: COLORS.gray,
     padding: 0,
-    marginTop: 2,
+  },
+  swapButton: {
+    width: 36,
+    height: 36,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 10,
+  },
+  label: {
+    fontSize: 14,
+    color: '#999',
+    marginBottom: 4,
+  },
+  input: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  inputSubtext: {
+    fontSize: 12,
+    color: '#999',
   },
   datesRow: {
     flexDirection: 'row',
@@ -463,9 +468,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     marginLeft: 8,
-    fontSize: 16,
-    color: COLORS.primaryBlue,
   },
   passengersContainer: {
     flexDirection: 'row',
@@ -481,6 +486,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   passengerInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  passengerSelector: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -505,9 +515,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   searchButtonText: {
-    color: COLORS.white,
+    color: 'white',
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -568,10 +578,12 @@ const styles = StyleSheet.create({
   },
   qrCode: {
     backgroundColor: COLORS.green,
+    width: 50,
+    height: 50,
     borderRadius: 8,
-    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  // Estilos para el modal
   modalOverlay: {
     flex: 1,
     backgroundColor: COLORS.overlay,
