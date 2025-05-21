@@ -129,7 +129,6 @@ export default function SaldoScreen() {
             </TouchableOpacity>
           </View>
         </View>
-<<<<<<< HEAD
         
         {/* Transaction History */}
         <View style={styles.transactionSection}>
@@ -144,11 +143,6 @@ export default function SaldoScreen() {
       </View>
       
       {/* Modal de Recarga */}
-=======
-      </ScrollView>
-      
-      {/* Modal de Recarga/Descuento */}
->>>>>>> temp-fix-branch
       <Modal
         visible={isModalVisible}
         transparent={true}
