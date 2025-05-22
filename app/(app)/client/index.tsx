@@ -1,14 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  ScrollView,
-  TextInput,
-  Platform,
-  StatusBar,
+import {View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,TextInput,Platform,StatusBar,
   Alert,
   Modal,
   Image,
@@ -32,7 +23,7 @@ const COLORS = {
 };
 
 export default function ClientHome() {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
   const { userData, isLoading: isUserDataLoading } = useUser();
   const router = useRouter();
   
@@ -45,6 +36,7 @@ export default function ClientHome() {
   const [returnDate, setReturnDate] = useState<string | null>(null);
   const [passengerCount, setPassengerCount] = useState(1);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [profilePopupVisible, setProfilePopupVisible] = useState(false);
   
   // Función para intercambiar origen y destino
   const swapLocations = () => {
@@ -73,6 +65,15 @@ export default function ClientHome() {
 
   const navigateToTickets = () => {
     router.push('/client/ticketScreen');
+  };
+
+   const handleLogout = async () => {
+    try {
+      await logout();
+      router.replace('/auth');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo cerrar sesión');
+    }
   };
 
   // Obtener el nombre del usuario
@@ -120,6 +121,43 @@ export default function ClientHome() {
     );
   };
 
+  const renderProfilePopup = () => {
+    return (
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={profilePopupVisible}
+        onRequestClose={() => setProfilePopupVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.profilePopupOverlay}
+          activeOpacity={1}
+          onPress={() => setProfilePopupVisible(false)}
+        >
+          <View style={styles.profilePopup}>
+            <View style={styles.profilePopupHeader}>
+              <View style={styles.profileAvatarSmall}>
+                <Text style={styles.profileAvatarText}>{userInitial}</Text>
+              </View>
+              <View style={styles.profilePopupInfo}>
+                <Text style={styles.profilePopupName}>{userName}</Text>
+                <Text style={styles.profilePopupEmail}>{userData?.correo || 'correo@ejemplo.com'}</Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.logoutButton} 
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={20} color={COLORS.white} />
+              <Text style={styles.logoutButtonText}>Cerrar sesión</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
+
   // Mostrar pantalla de carga mientras se obtienen los datos del usuario
   if (isUserDataLoading) {
     return (
@@ -155,15 +193,19 @@ export default function ClientHome() {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
       {/* Header con fondo azul */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola, {userName}</Text>
-          <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
-        </View>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatarText}>{userInitial}</Text>
-        </View>
+    <View style={styles.header}>
+      <View>
+        <Text style={styles.greeting}>Hola, {userName}</Text>
+        <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
       </View>
+      {/* Hacer el avatar clickeable */}
+      <TouchableOpacity 
+        style={styles.avatarContainer}
+        onPress={() => setProfilePopupVisible(true)}
+      >
+        <Text style={styles.avatarText}>{userInitial}</Text>
+      </TouchableOpacity>
+    </View>
       
       {/* Contenido principal con fondo blanco y bordes redondeados */}
       <View style={styles.mainContent}>
@@ -320,6 +362,8 @@ export default function ClientHome() {
         
         {/* Modal del código QR */}
         {renderQrModal()}
+        {/* Añadir esta línea para mostrar el popup */}
+        {renderProfilePopup()}
       </View>
     </View>
   );
@@ -622,5 +666,71 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 10,
     marginBottom: 10,
-  }
+  },
+  profilePopupOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  profilePopup: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 100 : 100,
+    right: 20,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 16,
+    width: 250,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  profilePopupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+  },
+  profileAvatarSmall: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryBlue,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  profileAvatarText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  profilePopupInfo: {
+    flex: 1,
+  },
+  profilePopupName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+  },
+  profilePopupEmail: {
+    fontSize: 12,
+    color: COLORS.gray,
+    marginTop: 2,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.skyBlue,
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'center',
+  },
+  logoutButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
 });

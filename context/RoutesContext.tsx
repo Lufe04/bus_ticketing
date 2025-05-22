@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import {collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where,orderBy, Timestamp, DocumentData, DocumentReference, QuerySnapshot } from 'firebase/firestore';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import {collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp, DocumentData, DocumentReference, QuerySnapshot } from 'firebase/firestore';
 import { db } from '../utils/FirebaseConfig';
-import { useAuth } from './AuthContext';
+import { useUser } from './UserContext';
 
 // Define the structure for a route
 export interface ClientRoute {
@@ -39,10 +39,10 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { userData } = useAuth();
+  const { userData } = useUser();
 
   // Get all routes
-  const getRoutes = async (): Promise<void> => {
+  const getRoutes = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
       const q = query(
@@ -74,10 +74,10 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Get routes for the current user
-  const getUserRoutes = async (): Promise<void> => {
+  const getUserRoutes = useCallback(async (): Promise<void> => {
     if (!userData?.id) {
       setUserRoutes([]);
       return;
@@ -115,7 +115,7 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userData?.id]);
 
   // Add a new route
   const addRoute = async (route: Omit<ClientRoute, 'id'>): Promise<ClientRoute | null> => {
@@ -206,12 +206,12 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
     if (userData?.id) {
       getUserRoutes();
     }
-  }, [userData?.id]);
+  }, [userData?.id, getUserRoutes]);
 
   // Initial load of all routes
   useEffect(() => {
     getRoutes();
-  }, []);
+  }, [getRoutes]);
 
   return (
     <RoutesContext.Provider
