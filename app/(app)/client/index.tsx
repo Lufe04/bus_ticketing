@@ -63,7 +63,7 @@ export default function ClientHome() {
       'Seleccionar fecha',
       `Esta funcionalidad permitiría elegir la fecha de ${type === 'departure' ? 'salida' : 'regreso'}.`,
       [{ text: 'Entendido', style: 'default' }]
-    ); // Corregido: Se agregó el paréntesis de cierre
+    );
   };
 
   // Navegación a otras pantallas
@@ -151,19 +151,22 @@ export default function ClientHome() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hola, {userName}</Text>
-            <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
-          </View>
-          <View style={styles.avatarContainer}>
-            <Text style={styles.avatarText}>{userInitial}</Text>
-          </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
+      
+      {/* Header con fondo azul */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hola, {userName}</Text>
+          <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
         </View>
-        
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>{userInitial}</Text>
+        </View>
+      </View>
+      
+      {/* Contenido principal con fondo blanco y bordes redondeados */}
+      <View style={styles.mainContent}>
         <ScrollView 
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
@@ -317,15 +320,15 @@ export default function ClientHome() {
         
         {/* Modal del código QR */}
         {renderQrModal()}
-      </ScrollView>
-    </SafeAreaView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.primaryBlue,
   },
   loadingContainer: {
     flex: 1,
@@ -358,12 +361,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   header: {
-    backgroundColor: '#14192e',
     paddingTop: Platform.OS === 'android' ? 50 : 50,
-    paddingBottom: 30,
+    paddingBottom: 20,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -371,24 +371,31 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
+    color: COLORS.white,
   },
   subGreeting: {
     fontSize: 16,
-    color: 'white',
+    color: COLORS.white,
     marginTop: 4,
   },
   avatarContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#e8e8e8',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+  },
+  mainContent: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
   },
   scrollContent: {
     paddingBottom: 80, // Espacio para el tab navigator
@@ -404,10 +411,8 @@ const styles = StyleSheet.create({
   },
   locationField: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.lightGray,
     borderRadius: 8,
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
     padding: 12,
   },
   fieldLabel: {
@@ -436,19 +441,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 10,
   },
-  label: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 4,
-  },
-  input: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  inputSubtext: {
-    fontSize: 12,
-    color: '#999',
-  },
   datesRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -456,10 +448,8 @@ const styles = StyleSheet.create({
   },
   dateField: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.lightGray,
     borderRadius: 8,
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
     padding: 12,
     marginRight: 10,
   },
@@ -475,10 +465,8 @@ const styles = StyleSheet.create({
   passengersContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.lightGray,
     borderRadius: 8,
-    borderColor: '#E0E0E0',
-    borderWidth: 1,
     padding: 12,
     marginBottom: 16,
   },
@@ -489,10 +477,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 4,
-  },
-  passengerSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   passengerInput: {
     fontSize: 16,
@@ -531,7 +515,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryBlue,
   },
   ticketCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.lightGray,
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',

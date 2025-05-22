@@ -10,7 +10,8 @@ import {
   Modal,
   Platform,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -29,7 +30,7 @@ const COLORS = {
 };
 
 export default function SaldoScreen() {
-  const { currentUser } = useAuth(); // Obtenemos el usuario autenticado
+  const { currentUser } = useAuth();
   const { userData, updateUserBalance } = useUser();
   const router = useRouter();
   
@@ -47,14 +48,12 @@ export default function SaldoScreen() {
 
   // Manejar la recarga de saldo
   const handleRecharge = async () => {
-    // Validar que sea un número válido y mayor que 0
     const amount = parseInt(rechargeAmount);
     if (isNaN(amount) || amount <= 0) {
       Alert.alert('Error', 'Por favor ingresa un monto válido mayor a 0');
       return;
     }
     
-    // Verificar que tenemos el ID del usuario
     if (!userData?.id) {
       Alert.alert('Error', 'No se pudo identificar el usuario actual');
       return;
@@ -62,7 +61,6 @@ export default function SaldoScreen() {
     
     setIsLoading(true);
     try {
-      // Corregir orden: primero el ID del usuario, luego el monto
       await updateUserBalance(userData.id, amount);
       setIsModalVisible(false);
       setRechargeAmount('');
@@ -88,7 +86,7 @@ export default function SaldoScreen() {
   if (!userData) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={COLORS.skyBlue} />
           <Text style={{ marginTop: 20, color: COLORS.gray }}>
             Cargando información...
@@ -98,46 +96,88 @@ export default function SaldoScreen() {
     );
   }
 
+  // Obtener las iniciales del nombre de usuario o usar "U" por defecto
+  const getUserInitial = () => {
+    if (userData?.nombre) {
+      return userData.nombre.charAt(0).toUpperCase();
+    }
+    return "U";
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
-      {/* Contenido principal */}
-      <View style={styles.content}>
-        {/* Balance Card */}
-        <View style={styles.balanceCardContainer}>
-          <View style={styles.balanceCard}>
-            <View style={styles.balanceHeader}>
-              <Text style={styles.balanceLabel}>Saldo Disponible</Text>
-              <Ionicons name="wallet-outline" size={24} color={COLORS.white} />
-            </View>
-            
-            <Text style={styles.balanceAmount}>
-              {formatBalance(currentBalance)}
-            </Text>
-            
-            <Text style={styles.balanceSubtext}>
-              Último movimiento: {new Date().toLocaleDateString()}
-            </Text>
-            
-            <TouchableOpacity 
-              style={styles.rechargeButton}
-              onPress={() => setIsModalVisible(true)}
-            >
-              <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
-              <Text style={styles.rechargeButtonText}>Recargar</Text>
-            </TouchableOpacity>
-          </View>
+      {/* Header con saludo y avatar */}
+      <View style={styles.header}>
+        <Text style={styles.greeting}>
+          Hola, {userData?.nombre || "Usuario"}
+        </Text>
+        <View style={styles.avatarContainer}>
+          <Text style={styles.avatarText}>{getUserInitial()}</Text>
         </View>
-        
-        {/* Transaction History */}
-        <View style={styles.transactionSection}>
-          <Text style={styles.transactionTitle}>Historial de Movimientos</Text>
+      </View>
+      
+      {/* Contenido principal con borde superior redondeado */}
+      <View style={styles.mainContent}>
+        {/* Sección de saldo */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceLabel}>Saldo Disponible</Text>
+          <Text style={styles.balanceAmount}>
+            $ {currentBalance.toLocaleString('es-CO')}
+          </Text>
           
-          {/* Mostrar historial de transacciones si se implementa en el futuro */}
-          <View style={styles.emptyTransactions}>
-            <Ionicons name="receipt-outline" size={60} color={COLORS.lightGray} />
-            <Text style={styles.emptyText}>No hay movimientos recientes</Text>
+          {/* Botón de recarga */}
+          <TouchableOpacity 
+            style={styles.rechargeButton}
+            onPress={() => setIsModalVisible(true)}
+          >
+            <Ionicons name="card-outline" size={24} color={COLORS.white} />
+            <Text style={styles.rechargeText}>Recargar</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Tabla de valor de pasajes */}
+        <View style={styles.fareContainer}>
+          <View style={styles.fareHeader}>
+            <Ionicons name="bus-outline" size={22} color={COLORS.gray} />
+            <Text style={styles.fareTitle}>Valor pasajes</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 1 h - 2 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 8,000</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 2 h - 3 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 16,000</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 3 h - 4 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 24,000</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 4 h - 5 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 32,000</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 5 h - 6 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 40,000</Text>
+          </View>
+          
+          <View style={styles.fareRow}>
+            <Text style={styles.fareText}>Duración: 6 h - 7 h</Text>
+            <Text style={styles.fareDots}>···································</Text>
+            <Text style={styles.farePrice}>$ 50,000</Text>
           </View>
         </View>
       </View>
@@ -191,91 +231,131 @@ export default function SaldoScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
-  },
-  content: {
-    flex: 1,
-  },
-  balanceCardContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-  },
-  balanceCard: {
     backgroundColor: COLORS.primaryBlue,
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  balanceHeader: {
+  header: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+  },
+  greeting: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  avatarContainer: {
+    backgroundColor: COLORS.white,
+    height: 48,
+    width: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+  },
+  mainContent: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: 20,
+    paddingTop: 25,
+  },
+  balanceSection: {
+    marginBottom: 30,
   },
   balanceLabel: {
     fontSize: 16,
-    color: COLORS.white,
-    opacity: 0.8,
+    color: COLORS.gray,
+    marginBottom: 5,
   },
   balanceAmount: {
     fontSize: 36,
     fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 10,
-  },
-  balanceSubtext: {
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.7,
+    color: '#000',
     marginBottom: 20,
   },
   rechargeButton: {
+    backgroundColor: COLORS.primaryBlue,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.skyBlue,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
+    width: 120,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  rechargeButtonText: {
+  rechargeText: {
     color: COLORS.white,
-    fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  transactionSection: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 30,
+  fareContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
-  transactionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.primaryBlue,
-    marginBottom: 15,
-  },
-  emptyTransactions: {
-    flex: 1,
-    justifyContent: 'center',
+  fareHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  emptyText: {
-    marginTop: 10,
+  fareTitle: {
     fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
     color: COLORS.gray,
   },
+  fareRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  fareText: {
+    fontSize: 15,
+    color: '#333',
+    flex: 2,
+  },
+  fareDots: {
+    fontSize: 12,
+    color: '#ccc',
+    flex: 1,
+    textAlign: 'center',
+  },
+  farePrice: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
+    textAlign: 'right',
+    flex: 1,
+  },
+  // Estilos para el modal (mantenidos de la versión anterior)
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -346,5 +426,5 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 16,
     fontWeight: 'bold',
-  },
+  }
 });
