@@ -168,11 +168,11 @@ export default function TabLayout() {
       />
 
      <Tabs.Screen
-      name="mapaScreen"
+      name="mapScreen"
       options={{
         title: "Mapa",
         tabBarIcon: ({ color, size }) => (
-          <Ionicons name="map-outline" size={size} color={color} />
+          <Ionicons name="location-outline" size={size} color={color} />
         ),
       }}
     />
