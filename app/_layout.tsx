@@ -25,7 +25,7 @@ async function schedulePushNotification() {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 2,
+      seconds: 10,
     },
   });
 }
