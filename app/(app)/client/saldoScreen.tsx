@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
 
 // Paleta de colores consistente con el resto de la aplicación
 const COLORS = {
@@ -28,7 +29,8 @@ const COLORS = {
 };
 
 export default function SaldoScreen() {
-  const { userData, updateUserBalance } = useAuth();
+  const { currentUser } = useAuth(); // Obtenemos el usuario autenticado
+  const { userData, updateUserBalance } = useUser();
   const router = useRouter();
   
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -52,9 +54,16 @@ export default function SaldoScreen() {
       return;
     }
     
+    // Verificar que tenemos el ID del usuario
+    if (!userData?.id) {
+      Alert.alert('Error', 'No se pudo identificar el usuario actual');
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      await updateUserBalance(amount);
+      // Corregir orden: primero el ID del usuario, luego el monto
+      await updateUserBalance(userData.id, amount);
       setIsModalVisible(false);
       setRechargeAmount('');
       Alert.alert('Éxito', `Se han recargado $${amount} a tu cuenta`);
@@ -75,89 +84,62 @@ export default function SaldoScreen() {
     }).format(balance);
   };
 
+  // Si no hay datos del usuario, mostrar pantalla de carga
+  if (!userData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.content, { justifyContent: 'center', alignItems: 'center' }]}>
+          <ActivityIndicator size="large" color={COLORS.skyBlue} />
+          <Text style={{ marginTop: 20, color: COLORS.gray }}>
+            Cargando información...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={28} color={COLORS.white} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mi Saldo</Text>
-        <View style={styles.headerRight} />
-      </View>
-      
-      {/* Balance Card */}
-      <View style={styles.balanceCardContainer}>
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceHeader}>
-            <Text style={styles.balanceLabel}>Saldo Disponible</Text>
-            <Ionicons name="wallet-outline" size={24} color={COLORS.white} />
+      {/* Contenido principal */}
+      <View style={styles.content}>
+        {/* Balance Card */}
+        <View style={styles.balanceCardContainer}>
+          <View style={styles.balanceCard}>
+            <View style={styles.balanceHeader}>
+              <Text style={styles.balanceLabel}>Saldo Disponible</Text>
+              <Ionicons name="wallet-outline" size={24} color={COLORS.white} />
+            </View>
+            
+            <Text style={styles.balanceAmount}>
+              {formatBalance(currentBalance)}
+            </Text>
+            
+            <Text style={styles.balanceSubtext}>
+              Último movimiento: {new Date().toLocaleDateString()}
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.rechargeButton}
+              onPress={() => setIsModalVisible(true)}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
+              <Text style={styles.rechargeButtonText}>Recargar</Text>
+            </TouchableOpacity>
           </View>
-          
-          <Text style={styles.balanceAmount}>
-            {formatBalance(currentBalance)}
-          </Text>
-          
-          <Text style={styles.balanceSubtext}>
-            Último movimiento: {new Date().toLocaleDateString()}
-          </Text>
-          
-          <TouchableOpacity 
-            style={styles.rechargeButton}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Ionicons name="add-circle-outline" size={20} color={COLORS.white} />
-            <Text style={styles.rechargeButtonText}>Recargar</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-      
-      {/* Transaction History */}
-      <View style={styles.transactionSection}>
-        <Text style={styles.transactionTitle}>Historial de Movimientos</Text>
         
-        {/* Mostrar historial de transacciones si se implementa en el futuro */}
-        <View style={styles.emptyTransactions}>
-          <Ionicons name="receipt-outline" size={60} color={COLORS.lightGray} />
-          <Text style={styles.emptyText}>No hay movimientos recientes</Text>
+        {/* Transaction History */}
+        <View style={styles.transactionSection}>
+          <Text style={styles.transactionTitle}>Historial de Movimientos</Text>
+          
+          {/* Mostrar historial de transacciones si se implementa en el futuro */}
+          <View style={styles.emptyTransactions}>
+            <Ionicons name="receipt-outline" size={60} color={COLORS.lightGray} />
+            <Text style={styles.emptyText}>No hay movimientos recientes</Text>
+          </View>
         </View>
-      </View>
-      
-      {/* Navigation Bar */}
-      <View style={styles.bottomNavigation}>
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/(app)/client')}
-        >
-          <Ionicons name="home-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Inicio</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="cash" size={24} color={COLORS.skyBlue} />
-          <Text style={[styles.navText, styles.activeNavText]}>Saldo</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem} 
-          onPress={() => router.push('/mapScreen')}
-        >
-          <Ionicons name="map-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Mapa</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => router.push('/favoritesScreen')}
-        >
-          <Ionicons name="heart-outline" size={24} color={COLORS.gray} />
-          <Text style={styles.navText}>Favoritos</Text>
-        </TouchableOpacity>
       </View>
       
       {/* Modal de Recarga */}
@@ -218,32 +200,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.white,
   },
-  header: {
-    backgroundColor: COLORS.primaryBlue,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Platform.OS === 'android' ? 40 : 20,
-    paddingBottom: 20,
-    paddingHorizontal: 15,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: COLORS.white,
-  },
-  headerRight: {
-    width: 40,
+  content: {
+    flex: 1,
   },
   balanceCardContainer: {
     paddingHorizontal: 20,
-    marginTop: -20,
+    paddingTop: 20,
   },
   balanceCard: {
     backgroundColor: COLORS.primaryBlue,
@@ -313,26 +275,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: COLORS.gray,
-  },
-  bottomNavigation: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-    height: 60,
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
-  },
-  navItem: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 2,
-  },
-  activeNavText: {
-    color: COLORS.skyBlue,
   },
   modalContainer: {
     flex: 1,

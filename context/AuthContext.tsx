@@ -63,10 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
-
+      
+      //Nuevo
       if (user) {
         const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
@@ -86,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-
+  // Nuevo
   const loginWithProfile = async (email: string, password: string): Promise<any> => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -131,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
-
+  
   // Función mejorada para registro completo
   // Acepta una función callback que se encargará de crear el usuario en Firestore
   const registerWithProfile = async (
@@ -196,7 +197,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     currentUser,
-    userData,
     loading,
     isAuthenticated: !!currentUser,
     login,
