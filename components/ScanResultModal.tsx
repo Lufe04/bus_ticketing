@@ -6,9 +6,10 @@ import LottieView from 'lottie-react-native';
 type Props = {
   visible: boolean;
   success: boolean;
+  passengerId?: string;
 };
 
-export default function ScanResultModal({ visible, success }: Props) {
+export default function ScanResultModal({ visible, success, passengerId }: Props) {
   const router = useRouter();
   const animationRef = useRef<LottieView>(null);
 
@@ -19,11 +20,18 @@ export default function ScanResultModal({ visible, success }: Props) {
 
     if (visible) {
       const timeout = setTimeout(() => {
-        router.replace(success ? '/driver/boarding' : '/driver/route');
-      }, 5000);
+        if (success && passengerId) {
+          router.replace({
+            pathname: '/driver/boarding',
+            params: { passengerId },
+          });
+        } else {
+          router.replace('/driver/route');
+        }
+      }, 3000);
       return () => clearTimeout(timeout);
     }
-  }, [visible]);
+  }, [visible, success, passengerId]);
 
   return (
     <Modal visible={visible} transparent animationType="fade">

@@ -1,9 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useBoarding } from '../../../context/BoardingContext';
 
 export default function BoardingSummaryScreen() {
-    const router = useRouter();
+  const router = useRouter();
+  const { passengerId } = useLocalSearchParams();
+  console.log('🧾 passengerId recibido en Summary:', passengerId)
+  const { getCurrentBoarding } = useBoarding();
+
+  const boarding = getCurrentBoarding();
+
+  const passenger = boarding?.pasajeros_lista?.find(p => p.idUsuario === passengerId);
+
+  const escaneados = boarding?.pasajeros_lista?.filter(p => p.escaneado).length || 0;
+  const sinEscanear = (boarding?.pasajeros_lista?.length || 0) - escaneados;
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -11,39 +23,40 @@ export default function BoardingSummaryScreen() {
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>Resumen de Abordaje</Text>
         </View>
-        <View style={styles.userCircle}>
-          <Text style={styles.userInitial}>U</Text>
-        </View>
       </View>
 
+      {/* Información del pasajero */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Información del Pasajero</Text>
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.label}>Nombre</Text>
-            <Text style={styles.value}>María</Text>
+            <Text style={styles.value}>{passenger?.nombre ?? '—'}</Text>
           </View>
           <View style={styles.rowBetween}>
             <Text style={styles.label}>Puesto</Text>
-            <Text style={styles.value}>5B</Text>
+            <Text style={styles.value}>{passenger?.puesto ?? '—'}</Text>
           </View>
         </View>
       </View>
 
+      {/* Información general */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Información General</Text>
         <View style={styles.card}>
           <View style={styles.rowBetween}>
             <Text style={styles.label}>Ruta</Text>
-            <Text style={styles.valueMuted}>R0001</Text>
+            <Text style={styles.valueMuted}>
+              {boarding?.desde} → {boarding?.hasta}
+            </Text>
           </View>
           <View style={styles.rowBetween}>
             <Text style={styles.label}>Pasajes Escaneados</Text>
-            <Text style={styles.value}>1</Text>
+            <Text style={styles.value}>{escaneados}</Text>
           </View>
           <View style={styles.rowBetween}>
             <Text style={styles.label}>Pasajes Sin Escanear</Text>
-            <Text style={styles.value}>17</Text>
+            <Text style={styles.value}>{sinEscanear}</Text>
           </View>
         </View>
       </View>
@@ -61,10 +74,7 @@ export default function BoardingSummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F7F8FA',
-  },
+  container: { flex: 1, backgroundColor: '#F7F8FA' },
   header: {
     backgroundColor: '#08173B',
     padding: 20,
@@ -74,32 +84,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '400',
-  },
-  userCircle: {
-    backgroundColor: '#FFFFFF',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userInitial: {
-    color: '#08173B',
-    fontWeight: '500',
-    fontSize: 32,
-  },
-  section: {
-    marginTop: 24,
-    paddingHorizontal: 16,
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
+  section: { marginTop: 24, paddingHorizontal: 16 },
   sectionTitle: {
     fontSize: 24,
     fontWeight: '600',
