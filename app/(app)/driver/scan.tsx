@@ -14,20 +14,19 @@ import { db } from '@/utils/FirebaseConfig';
 
 export default function ScanScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(true); // depende del resultado del QR
+  const [isSuccess, setIsSuccess] = useState(true); 
   const [scannerVisible, setScannerVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const { userData } = useUser();
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
   const router = useRouter();
-  const { boardings, getCurrentBoarding } = useBoarding();
+  const { boardings, getCurrentBoarding, getBoardings } = useBoarding();
   const [passengerIdScanned, setPassengerIdScanned] = useState<string | null>(null);
 
   const handleScanResult = async (userId: string) => {
       console.log("🔍 Escaneando ID de usuario:", userId);
       const currentBoarding = getCurrentBoarding();
-
       if (!currentBoarding || !currentBoarding.id) {
         console.warn("⚠️ No hay ruta activa");
         setIsSuccess(false);
@@ -37,15 +36,24 @@ export default function ScanScreen() {
 
       try {
         const pasajerosRef = collection(db, `boarding/${currentBoarding.id}/pasajeros`);
-        const q = query(pasajerosRef, where('idUsuario', '==', userId));
+        const q = query(pasajerosRef, where('idUsuario', '==', userId.trim()));
         const snapshot = await getDocs(q);
 
         if (!snapshot.empty) {
-          const docRef = snapshot.docs[0].ref;
-          await updateDoc(docRef, { escaneado: true });
-          console.log('✅ Pasajero validado y actualizado');
-          setPassengerIdScanned(userId);
-          setIsSuccess(true);
+          const doc = snapshot.docs[0];
+          const data = doc.data();
+
+          if (data.escaneado === true) {
+            console.warn('⚠️ El pasaje ya fue escaneado anteriormente');
+            setPassengerIdScanned(null);
+            setIsSuccess(false);
+          } else {
+            await updateDoc(doc.ref, { escaneado: true });
+            await getBoardings(); // refrescar estado global
+            console.log('✅ Pasajero validado y actualizado');
+            setPassengerIdScanned(userId);
+            setIsSuccess(true);
+          }
         } else {
           console.warn('❌ Pasajero no encontrado en esta ruta');
           setPassengerIdScanned(null);

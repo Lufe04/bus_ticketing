@@ -89,7 +89,7 @@ export default function RouteInfoScreen() {
 
         <TouchableOpacity
           style={[styles.startButton, disableStartButton && { backgroundColor: '#ccc' }]}
-          disabled={disableStartButton}
+          //disabled={disableStartButton}
           onPress={() => router.push('/driver/routeMap')}
         >
           <Text style={styles.startButtonText}>

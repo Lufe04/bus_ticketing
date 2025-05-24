@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useBoarding } from '../../../context/BoardingContext';
@@ -8,13 +8,12 @@ export default function BoardingSummaryScreen() {
   const { passengerId } = useLocalSearchParams();
   console.log('🧾 passengerId recibido en Summary:', passengerId)
   const { getCurrentBoarding } = useBoarding();
-
   const boarding = getCurrentBoarding();
 
   const passenger = boarding?.pasajeros_lista?.find(p => p.idUsuario === passengerId);
-
-  const escaneados = boarding?.pasajeros_lista?.filter(p => p.escaneado).length || 0;
-  const sinEscanear = (boarding?.pasajeros_lista?.length || 0) - escaneados;
+  const escaneados = boarding?.pasajeros_lista?.filter(p => p.escaneado === true).length || 0;
+  const sinEscanear = boarding?.pasajeros_lista?.filter(p => p.escaneado === false).length || 0;
+  const disableScanButton = sinEscanear === 0;
 
   return (
     <View style={styles.container}>
@@ -62,7 +61,13 @@ export default function BoardingSummaryScreen() {
       </View>
 
       <View style={styles.buttonsContainer}>
-        <TouchableOpacity style={styles.scanButton} onPress={() => router.push('/driver/scan')}>
+        <TouchableOpacity
+          style={[
+            styles.scanButton,
+            disableScanButton && { backgroundColor: '#ccc' },
+          ]}
+          onPress={() => router.push('/driver/scan')}
+          disabled={disableScanButton}>
           <Text style={styles.scanButtonText}>Escanear Pasajes</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.endButton} onPress={() => router.push('/driver/route')}>
@@ -74,7 +79,10 @@ export default function BoardingSummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   header: {
     backgroundColor: '#08173B',
     padding: 20,
@@ -84,9 +92,19 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
-  section: { marginTop: 24, paddingHorizontal: 16 },
+  headerLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 22, 
+    fontWeight: '400' 
+  },
+  section: { 
+    marginTop: 24, 
+    paddingHorizontal: 16 
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: '600',
