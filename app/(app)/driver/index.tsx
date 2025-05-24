@@ -26,14 +26,6 @@ export default function DriverHomeScreen() {
   .sort((a, b) => a.hora_inicio.seconds - b.hora_inicio.seconds)
   .slice(0, 5);
 
-
-
-  useEffect(() => {
-    console.log('📦 Todos los boardings:', boardings);
-    console.log('✅ Boarding actual:', currentBoarding);
-    console.log('🔜 Siguientes rutas:', nextBoardings);
-  }, [boardings]);
-
   const formatTime = (timestamp?: Timestamp) => {
     if (!timestamp?.toDate) return '—';
     const date = timestamp.toDate();

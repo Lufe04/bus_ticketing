@@ -34,7 +34,7 @@ export default function RouteInfoScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" onPress={() => router.back()} />
+          <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" onPress={() => router.replace("/(app)/driver")} />
           <Text style={styles.headerTitle}>Información de la ruta</Text>
         </View>
         <TouchableOpacity style={styles.userCircle} onPress={() => setMenuVisible(true)}>
