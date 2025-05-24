@@ -4,9 +4,10 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { useBoarding } from '../../../context/BoardingContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
 import { toZonedTime } from 'date-fns-tz';
 import { format } from 'date-fns';
+import UserMenuModal from '../../../components/UserModal';
 
 
 // Configuración en español
@@ -23,8 +24,9 @@ LocaleConfig.defaultLocale = 'es';
 
 export default function DriverRoutesScreen() {
   const router = useRouter();
-  const { userData } = useAuth();
+  const { userData } = useUser();
   const { boardings } = useBoarding();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
@@ -104,9 +106,9 @@ export default function DriverRoutesScreen() {
           <Text style={styles.headerTitle}>Hola, {nombreUsuario}</Text>
           <Text style={styles.headerSubtitle}>Planifica tu recorrido</Text>
         </View>
-        <View style={styles.userCircle}>
+        <TouchableOpacity style={styles.userCircle} onPress={() => setMenuVisible(true)}>
           <Text style={styles.userInitial}>{inicial}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <Calendar
@@ -174,12 +176,16 @@ export default function DriverRoutesScreen() {
           <Text style={styles.navLabel}>Historial</Text>
         </View>
       </View>
+      <UserMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   header: {
     backgroundColor: '#08173B',
     padding: 20,
@@ -189,8 +195,16 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 25, fontWeight: '600' },
-  headerSubtitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '400' },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 25, 
+    fontWeight: '600' 
+  },
+  headerSubtitle: { 
+    color: '#FFFFFF', 
+    fontSize: 19, 
+    fontWeight: '400' 
+  },
   userCircle: {
     backgroundColor: '#FFFFFF',
     width: 50,
@@ -199,7 +213,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -240,11 +258,26 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderColor: '#E5E7EB',
   },
-  navItem: { alignItems: 'center' },
-  navbarIcon: { color: '#000000' },
-  navbarIconActive: { color: '#20ADF5' },
-  navLabel: { fontSize: 12, color: '#000', marginTop: 2 },
-  navLabelActive: { fontSize: 12, color: '#20ADF5', marginTop: 2, fontWeight: '600' },
+  navItem: { 
+    alignItems: 'center' 
+  },
+  navbarIcon: { 
+    color: '#000000' 
+  },
+  navbarIconActive: { 
+    color: '#20ADF5' 
+  },
+  navLabel: { 
+    fontSize: 12, 
+    color: '#000', 
+    marginTop: 2 
+  },
+  navLabelActive: { 
+    fontSize: 12, 
+    color: '#20ADF5',
+    marginTop: 2, 
+    fontWeight: '600' 
+  },
   noRoutesBox: {
   marginTop: 30,
   alignItems: 'center',
