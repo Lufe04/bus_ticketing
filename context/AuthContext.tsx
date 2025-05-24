@@ -1,7 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, User as FirebaseUser} from 'firebase/auth';
-import {doc,setDoc,getDoc,updateDoc,deleteDoc,collection,query,where,getDocs} from 'firebase/firestore';
-import { auth, db } from '../utils/FirebaseConfig'; // Asegúrate de tener esta configuración
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -13,28 +10,25 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db  } from '../utils/FirebaseConfig';
 
-// Definir tipos
-type UserRole = 'client' | 'driver' | 'handler';
-
-// Interfaz para el usuario en Firestore, ahora con el campo saldo
-export interface UserData {
-  id?: string;
+// Definir tipos para los datos de registro
+export interface RegisterUserData {
+  email: string;
+  password: string;
   nombre: string;
   apellido: string;
-  correo: string;
-  role: UserRole;
-  saldo?: number; // Campo de saldo añadido como opcional para compatibilidad con usuarios existentes
+  role?: 'client' | 'driver' | 'handler' | 'admin';
+  documento?: string;
+  telefono?: string;
 }
 
 // Interfaz para el contexto de autenticación
 interface AuthContextType {
-  // Estado del usuario
+  // Estado de autenticación
   currentUser: FirebaseUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  userData: any;
+   userData: any;
   
-
   // Funciones de autenticación básicas
   login: (email: string, password: string) => Promise<FirebaseUser | null>;
   loginWithProfile: (email: string, password: string) => Promise<any>;
@@ -42,15 +36,11 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   
-  // Funciones CRUD para usuarios
-  updateUserData: (userData: Partial<UserData>) => Promise<void>;
-  getUserById: (id: string) => Promise<UserData | null>;
-  getUserByEmail: (email: string) => Promise<UserData | null>;
-  getUsersByRole: (role: UserRole) => Promise<UserData[]>;
-  deleteUser: () => Promise<void>;
-  
-  // Nueva función para actualizar el saldo
-  updateUserBalance: (amount: number) => Promise<void>;
+  // Función para registro completo (Auth + UserData)
+  registerWithProfile: (
+    userData: RegisterUserData,
+    createUserInFirestore: (userId: string) => Promise<void>
+  ) => Promise<FirebaseUser | null>;
 }
 
 // Crear el contexto
@@ -68,28 +58,13 @@ export const useAuth = () => {
 // Proveedor del contexto
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null)
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      
-      if (user) {
-        // Obtener datos del usuario desde Firestore
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setUserData({ id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> });
-        } else {
-          setUserData(null);
-        }
-      } else {
-        setUserData(null);
-      }
-      
       setLoading(false);
 
       if (user) {
@@ -136,46 +111,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 
   // Iniciar sesión
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<FirebaseUser | null> => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Obtener datos del usuario desde Firestore
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const userData = { id: user.uid, ...userDoc.data() as Omit<UserData, 'id'> };
-        setUserData(userData);
-        return userData; // Devolver los datos del usuario
-      }
-      return null;
+      return userCredential.user;
     } catch (error) {
       console.error('Error de inicio de sesión:', error);
       throw error;
     }
   };
 
-  // Registrar nuevo usuario
-  const register = async (email: string, password: string, userData: UserData): Promise<void> => {
+  // Registrar nuevo usuario (solo autenticación)
+  const register = async (email: string, password: string): Promise<FirebaseUser | null> => {
     try {
-      // Crear usuario en Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Guardar datos del usuario en Firestore, ahora con saldo inicial 0
-      await setDoc(doc(db, 'users', user.uid), {
-        nombre: userData.nombre,
-        apellido: userData.apellido,
-        correo: email,
-        role: userData.role,
-        saldo: 0 // Inicializar el saldo en 0 para nuevos usuarios
-      });
-      
-      // Actualizar estado local
-      setUserData({ id: user.uid, ...userData, saldo: 0 });
-      
+      return userCredential.user;
     } catch (error) {
       console.error('Error de registro:', error);
+      throw error;
+    }
+  };
+
+  // Función mejorada para registro completo
+  // Acepta una función callback que se encargará de crear el usuario en Firestore
+  const registerWithProfile = async (
+    userData: RegisterUserData,
+    createUserInFirestore: (userId: string) => Promise<void>
+  ): Promise<FirebaseUser | null> => {
+    try {
+      // 1. Registrar en Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        userData.email, 
+        userData.password
+      );
+      
+      const user = userCredential.user;
+      
+      // 2. Crear perfil en Firestore usando el callback
+      try {
+        await createUserInFirestore(user.uid);
+        console.log('Usuario registrado completamente en Auth y Firestore');
+      } catch (firestoreError) {
+        console.error('Error al crear perfil en Firestore:', firestoreError);
+        
+        // Si falla la creación en Firestore, eliminamos el usuario de Auth
+        // para mantener consistencia (evitar usuarios huérfanos)
+        try {
+          await user.delete();
+          console.warn('Usuario eliminado de Auth debido a error en Firestore');
+          throw new Error('No se pudo completar el registro. Error al guardar datos de usuario.');
+        } catch (deleteError) {
+          console.error('Error al eliminar usuario de Auth:', deleteError);
+          throw new Error('Error crítico en registro. Contacte al administrador.');
+        }
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error en registro completo:', error);
       throw error;
     }
   };
@@ -184,7 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      setUserData(null);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       throw error;
@@ -201,142 +194,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Actualizar datos del usuario
-  const updateUserData = async (updatedData: Partial<UserData>) => {
-    if (!currentUser || !userData) {
-      throw new Error('No hay usuario autenticado');
-    }
-
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, updatedData);
-      
-      // Actualizar estado local
-      setUserData({ ...userData, ...updatedData });
-    } catch (error) {
-      console.error('Error al actualizar datos del usuario:', error);
-      throw error;
-    }
-  };
-
-  // Nueva función para actualizar el saldo del usuario
-  const updateUserBalance = async (amount: number) => {
-    if (!currentUser || !userData) {
-      throw new Error('No hay usuario autenticado');
-    }
-
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      
-      // Obtener el saldo actual para asegurar que estamos trabajando con el valor más reciente
-      const userDoc = await getDoc(userRef);
-      if (!userDoc.exists()) {
-        throw new Error('Usuario no encontrado');
-      }
-      
-      const currentBalance = userDoc.data().saldo || 0;
-      const newBalance = currentBalance + amount;
-      
-      // No permitir saldos negativos
-      if (newBalance < 0) {
-        throw new Error('Saldo insuficiente');
-      }
-      
-      // Actualizar saldo en Firestore
-      await updateDoc(userRef, { saldo: newBalance });
-      
-      // Actualizar estado local
-      setUserData({ ...userData, saldo: newBalance });
-    } catch (error) {
-      console.error('Error al actualizar saldo del usuario:', error);
-      throw error;
-    }
-  };
-
-  // Obtener usuario por ID
-  const getUserById = async (id: string) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', id));
-      if (userDoc.exists()) {
-        return { id: userDoc.id, ...userDoc.data() as Omit<UserData, 'id'> };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error al obtener usuario por ID:', error);
-      throw error;
-    }
-  };
-
-  // Obtener usuario por correo electrónico
-  const getUserByEmail = async (email: string) => {
-    try {
-      const usersQuery = query(collection(db, 'users'), where('correo', '==', email));
-      const querySnapshot = await getDocs(usersQuery);
-      
-      if (!querySnapshot.empty) {
-        const userDoc = querySnapshot.docs[0];
-        return { id: userDoc.id, ...userDoc.data() as Omit<UserData, 'id'> };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error al obtener usuario por correo:', error);
-      throw error;
-    }
-  };
-
-  // Obtener usuarios por rol
-  const getUsersByRole = async (role: UserRole) => {
-    try {
-      const usersQuery = query(collection(db, 'users'), where('role', '==', role));
-      const querySnapshot = await getDocs(usersQuery);
-      
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data() as Omit<UserData, 'id'>
-      }));
-    } catch (error) {
-      console.error('Error al obtener usuarios por rol:', error);
-      throw error;
-    }
-  };
-
-  // Eliminar usuario
-  const deleteUser = async () => {
-    if (!currentUser) {
-      throw new Error('No hay usuario autenticado');
-    }
-
-    try {
-      // Eliminar documento del usuario en Firestore
-      await deleteDoc(doc(db, 'users', currentUser.uid));
-      
-      // Eliminar usuario de Authentication
-      await currentUser.delete();
-      
-      // Actualizar estado local
-      setUserData(null);
-    } catch (error) {
-      console.error('Error al eliminar usuario:', error);
-      throw error;
-    }
-  };
-
   const value = {
     currentUser,
     userData,
-    userData,
     loading,
+    isAuthenticated: !!currentUser,
     login,
     loginWithProfile,
     register,
+    registerWithProfile,
     logout,
-    resetPassword,
-    updateUserData,
-    getUserById,
-    getUserByEmail,
-    getUsersByRole,
-    deleteUser,
-    updateUserBalance // Añadir la nueva función al contexto
+    resetPassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
