@@ -75,7 +75,9 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const getBoardings = async () => {
     setLoading(true);
     try {
+      console.log('🚀 Ejecutando getBoardings con userId:', userData?.id); // 👈
       if (!userData?.id) {
+        console.warn('⚠️ No hay ID del usuario');
         setBoardings([]);
         return;
       }
@@ -87,10 +89,12 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
       );
 
       const snapshot = await getDocs(q);
+      console.log('📦 Docs encontrados:', snapshot.docs.length); // 👈
 
       const data: Boarding[] = [];
 
       for (const docSnap of snapshot.docs) {
+        console.log('📄 Boarding:', docSnap.data()); // 👈
         const boardingData = docSnap.data();
 
         const historialSnapshot = await getDocs(collection(docSnap.ref, 'historial_paradas'));
@@ -107,6 +111,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         } as Boarding);
       }
 
+      console.log('✅ Boardings finales:', data); // 👈
       setBoardings(data);
     } catch (err) {
       console.error('Error fetching boardings:', err);
@@ -198,6 +203,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const clearError = () => setError(null);
 
   useEffect(() => {
+    console.log('🧑 userData al cargar boardings:', userData); // 👈 AGREGA ESTA LÍNEA
     if (userData?.id) {
       getBoardings();
     }

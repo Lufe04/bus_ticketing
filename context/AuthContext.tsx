@@ -7,7 +7,8 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from '../utils/FirebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db  } from '../utils/FirebaseConfig';
 
 // Definir tipos para los datos de registro
 export interface RegisterUserData {
@@ -26,9 +27,11 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
   isAuthenticated: boolean;
+   userData: any;
   
   // Funciones de autenticación básicas
   login: (email: string, password: string) => Promise<FirebaseUser | null>;
+  loginWithProfile: (email: string, password: string) => Promise<any>;
   register: (email: string, password: string) => Promise<FirebaseUser | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -56,16 +59,57 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null)
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       setLoading(false);
+      
+      //Nuevo
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const dataWithId = { id: docSnap.id, ...docSnap.data() };
+          setUserData(dataWithId);
+          console.log('✅ Documento de usuario encontrado:', dataWithId);
+        } else {
+          console.warn('⚠️ No se encontró el documento del usuario en Firestore');
+          setUserData(null);
+        }
+      } else {
+        setUserData(null);
+      }
     });
 
     return unsubscribe;
   }, []);
+
+  // Nuevo
+  const loginWithProfile = async (email: string, password: string): Promise<any> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const dataWithId = { ...data, id: user.uid }; // ✅ agrega el id
+        setUserData(dataWithId); // ✅ ahora sí estará disponible en todo el contexto
+        return dataWithId;
+      } else {
+        throw new Error('No se encontró el perfil del usuario');
+      }
+    } catch (error) {
+      console.error('Error en loginWithProfile:', error);
+      throw error;
+    }
+  };
+
 
   // Iniciar sesión
   const login = async (email: string, password: string): Promise<FirebaseUser | null> => {
@@ -88,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
   };
-
+  
   // Función mejorada para registro completo
   // Acepta una función callback que se encargará de crear el usuario en Firestore
   const registerWithProfile = async (
@@ -156,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     isAuthenticated: !!currentUser,
     login,
+    loginWithProfile,
     register,
     registerWithProfile,
     logout,
