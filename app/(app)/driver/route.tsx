@@ -81,7 +81,7 @@ export default function RouteInfoScreen() {
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={[styles.scanButton, disableScanButton && { backgroundColor: '#ccc' }]}
-          disabled={disableScanButton}
+          //disabled={disableScanButton}
           onPress={() => router.push('/driver/scan')}
         >
           <Text style={styles.scanButtonText}>Escanear Pasajes</Text>

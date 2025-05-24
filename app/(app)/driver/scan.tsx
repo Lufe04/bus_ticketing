@@ -1,16 +1,27 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, Button } from 'react-native';
+import { View, Text, StyleSheet, Image, Button, TouchableOpacity } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import ScanResultModal from '../../../components/ScanResultModal';
+import QrScannerModal from '../../../components/QrCameraModal';
+import UserMenuModal from '../../../components/UserModal';
+import { useUser } from '../../../context/UserContext';
+
 
 export default function ScanScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isSuccess, setIsSuccess] = useState(true); // depende del resultado del QR
+  const [scannerVisible, setScannerVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const { userData } = useUser();
+  const nombreUsuario = userData?.nombre || 'Usuario';
+  const inicial = nombreUsuario.charAt(0).toUpperCase();
 
-  const handleScanResult = (result: boolean) => {
-    setIsSuccess(result);
+  const handleScanResult = (data: string) => {
+    const isValid = data === 'BOLETO_VALIDO_12345';
+    setIsSuccess(isValid);
     setModalVisible(true);
   };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -19,21 +30,22 @@ export default function ScanScreen() {
           <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" style={{ marginRight: 10 }} />
           <Text style={styles.headerTitle}>Escanear Pasajes</Text>
         </View>
-        <View style={styles.userCircle}>
-          <Text style={styles.userInitial}>U</Text>
-        </View>
+        <TouchableOpacity style={styles.userCircle} onPress={() => setMenuVisible(true)}>
+          <Text style={styles.userInitial}>{inicial}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* QR Icono */}
       <View style={styles.content}>
         <MaterialIcons name="qr-code-2" size={140} color="#000" />
-        <Button title="Simular Éxito" onPress={() => handleScanResult(true)} />
-        <Button title="Simular Error" onPress={() => handleScanResult(false)} />
+        <Button title="Escanear Código QR" onPress={() => setScannerVisible(true)} />
         <Text style={styles.instructionText}>
           Alinea el código QR dentro del recuadro para escanearlo correctamente.
         </Text>
       </View>
       <ScanResultModal visible={modalVisible} success={isSuccess} />
+      <QrScannerModal isVisible={scannerVisible} onClose={() => setScannerVisible(false)}onCodeScanned={handleScanResult}/> 
+      <UserMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }
