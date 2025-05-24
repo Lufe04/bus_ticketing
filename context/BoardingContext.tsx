@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../utils/FirebaseConfig';
 import { useAuth } from './AuthContext';
+import { useUser } from './UserContext';
 
 // Tipos
 export interface BoardingHistory {
@@ -70,7 +71,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { userData } = useAuth();
+  const { userData } = useUser();
 
   const getBoardings = async () => {
     setLoading(true);
