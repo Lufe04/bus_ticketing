@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Modal, View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
+import LottieView from 'lottie-react-native';
 
 type Props = {
   visible: boolean;
@@ -10,8 +10,13 @@ type Props = {
 
 export default function ScanResultModal({ visible, success }: Props) {
   const router = useRouter();
+  const animationRef = useRef<LottieView>(null);
 
   useEffect(() => {
+    if (visible && animationRef.current) {
+      animationRef.current.play();
+    }
+
     if (visible) {
       const timeout = setTimeout(() => {
         router.replace(success ? '/driver/boarding' : '/driver/route');
@@ -24,14 +29,15 @@ export default function ScanResultModal({ visible, success }: Props) {
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <DotLottieReact
-            src={
+          <LottieView
+            ref={animationRef}
+            source={
               success
-                ? 'https://lottie.host/2419a54d-fadf-49bb-ac69-d5f412f86701/rUjO7jDiHj.lottie'
-                : 'https://lottie.host/fe6bc43d-fc11-4b8c-a637-581c660c02ef/NxdwwT9III.lottie'
+                ? require('../assets/lottie/success.json')
+                : require('../assets/lottie/error.json')
             }
             loop={false}
-            autoplay
+            autoPlay
             style={{ width: 150, height: 150 }}
           />
 

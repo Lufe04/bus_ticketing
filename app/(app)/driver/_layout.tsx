@@ -14,7 +14,6 @@ export default function RootLayout() {
               <Stack.Screen name="boarding"/>
               <Stack.Screen name="route"/>
               <Stack.Screen name="routeMap"/>
-              <Stack.Screen name="routes"/>
               <Stack.Screen name="scan"/>
               <Stack.Screen name="summary"/>
       </Stack>
