@@ -2,6 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, User as FirebaseUser} from 'firebase/auth';
 import {doc,setDoc,getDoc,updateDoc,deleteDoc,collection,query,where,getDocs} from 'firebase/firestore';
 import { auth, db } from '../utils/FirebaseConfig'; // Asegúrate de tener esta configuración
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail,
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db  } from '../utils/FirebaseConfig';
 
 // Definir tipos
 type UserRole = 'client' | 'driver' | 'handler';
@@ -20,12 +30,15 @@ export interface UserData {
 interface AuthContextType {
   // Estado del usuario
   currentUser: FirebaseUser | null;
-  userData: UserData | null;
   loading: boolean;
+  isAuthenticated: boolean;
+  userData: any;
   
-  // Funciones de autenticación
-  login: (email: string, password: string) => Promise<UserData | null>;
-  register: (email: string, password: string, userData: UserData) => Promise<void>;
+
+  // Funciones de autenticación básicas
+  login: (email: string, password: string) => Promise<FirebaseUser | null>;
+  loginWithProfile: (email: string, password: string) => Promise<any>;
+  register: (email: string, password: string) => Promise<FirebaseUser | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   
@@ -57,9 +70,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null)
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
@@ -76,10 +91,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       setLoading(false);
+
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const dataWithId = { id: docSnap.id, ...docSnap.data() };
+          setUserData(dataWithId);
+          console.log('✅ Documento de usuario encontrado:', dataWithId);
+        } else {
+          console.warn('⚠️ No se encontró el documento del usuario en Firestore');
+          setUserData(null);
+        }
+      } else {
+        setUserData(null);
+      }
     });
 
     return unsubscribe;
   }, []);
+
+
+  const loginWithProfile = async (email: string, password: string): Promise<any> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const docRef = doc(db, 'users', user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const dataWithId = { ...data, id: user.uid }; // ✅ agrega el id
+        setUserData(dataWithId); // ✅ ahora sí estará disponible en todo el contexto
+        return dataWithId;
+      } else {
+        throw new Error('No se encontró el perfil del usuario');
+      }
+    } catch (error) {
+      console.error('Error en loginWithProfile:', error);
+      throw error;
+    }
+  };
+
 
   // Iniciar sesión
   const login = async (email: string, password: string) => {
@@ -270,8 +324,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     currentUser,
     userData,
+    userData,
     loading,
     login,
+    loginWithProfile,
     register,
     logout,
     resetPassword,
