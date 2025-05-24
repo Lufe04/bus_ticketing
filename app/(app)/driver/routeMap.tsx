@@ -5,12 +5,12 @@ import { useRouter } from 'expo-router';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
-import { doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../utils/FirebaseConfig';
 import { useUser } from '../../../context/UserContext';
 import { useBoarding } from '../../../context/BoardingContext';
 import { getCoordinates } from '../../../utils/geocode';
-import MapViewDirections from 'react-native-maps-directions'
+import TripConfirmationModal from '../../../components/TripModal';
 
 const DISTANCIA_MAXIMA_METROS = 200;
 
@@ -24,9 +24,16 @@ export default function RouteInProgressScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [paradaCoords, setParadaCoords] = useState<{ lat: number; lon: number; label: string }[]>([]);
   const [loadingParadas, setLoadingParadas] = useState(false);
-  const [canStartTrip, setCanStartTrip] = useState(false);
 
-  // Obtener ubicación actual
+  const [canStartTrip, setCanStartTrip] = useState(false);
+  const [canMarkStop, setCanMarkStop] = useState(false);
+  const [canEndTrip, setCanEndTrip] = useState(false);
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalAction, setModalAction] = useState<'start' | 'arrival' | 'end'>('start');
+  const [selectedStopName, setSelectedStopName] = useState('');
+
+  // Obtener ubicación
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -37,8 +44,7 @@ export default function RouteInProgressScreen() {
     })();
   }, []);
 
-
-  // Obtener coordenadas de paradas automáticamente
+  // Obtener coordenadas de las paradas
   useEffect(() => {
     const fetchAllStopCoordinates = async () => {
       if (!boarding?.paradas) return;
@@ -46,17 +52,8 @@ export default function RouteInProgressScreen() {
       const coordsArray: { lat: number; lon: number; label: string }[] = [];
 
       for (const stop of boarding.paradas) {
-        try {
-          const coords = await getCoordinates(stop);
-          if (coords) {
-            console.log(`📍 Coordenadas para ${stop}:`, coords);
-            coordsArray.push({ ...coords, label: stop });
-          } else {
-            console.warn(`⚠️ No se encontraron coordenadas para ${stop}`);
-          }
-        } catch (error) {
-          console.error(`❌ Error al buscar coordenadas para ${stop}:`, error);
-        }
+        const coords = await getCoordinates(stop);
+        if (coords) coordsArray.push({ ...coords, label: stop });
       }
 
       setParadaCoords(coordsArray);
@@ -66,14 +63,23 @@ export default function RouteInProgressScreen() {
     fetchAllStopCoordinates();
   }, [boarding?.paradas]);
 
- useEffect(() => {
+  // Simular movimiento del conductor 
+  useEffect(() => {
     const simulateDriverRoute = async () => {
       if (paradaCoords.length === 0 || !mapRef.current) return;
 
-      for (let i = 0; i < paradaCoords.length; i++) {
-        const stop = paradaCoords[i];
-
-        const simulatedLocation: Location.LocationObject = {
+      for (const stop of paradaCoords) {
+        mapRef.current.animateToRegion(
+          {
+            latitude: stop.lat,
+            longitude: stop.lon,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          3000
+        );
+        await new Promise(res => setTimeout(res, 3000));
+        setLocation({
           coords: {
             latitude: stop.lat,
             longitude: stop.lon,
@@ -85,79 +91,130 @@ export default function RouteInProgressScreen() {
           },
           mocked: true,
           timestamp: Date.now(),
-        };
-
-        // 1. Mueve la cámara en 3 segundos (animación suave al nuevo punto)
-        mapRef.current.animateToRegion(
-          {
-            latitude: stop.lat,
-            longitude: stop.lon,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          },
-          3000 // animación de 3 segundos
-        );
-
-        // 2. Espera esos 3 segundos antes de cambiar la ubicación
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        // 3. Actualiza la ubicación simulada (la que usa useEffect para verificar cercanía)
-        setLocation(simulatedLocation);
-
-        console.log(`🚌 Llegando a parada ${i + 1}:`, simulatedLocation.coords);
-
-        // 4. Espera 10 segundos en esta parada
-        await new Promise((resolve) => setTimeout(resolve, 10000));
+        });
+        await new Promise(res => setTimeout(res, 10000));
       }
     };
 
     simulateDriverRoute();
   }, [paradaCoords]);
 
-
-
-
-
-  // Validar si está cerca al terminal
+  // Verificar cercanía
   useEffect(() => {
-    if (location && paradaCoords.length > 0) {
-      const firstStop = paradaCoords[0];
-      const distance = getDistance(
-        { latitude: location.coords.latitude, longitude: location.coords.longitude },
-        { latitude: firstStop.lat, longitude: firstStop.lon }
-      );
-      console.log(`📏 Distancia al terminal: ${distance} metros`);
-      setCanStartTrip(distance <= DISTANCIA_MAXIMA_METROS);
-    }
-  }, [location, paradaCoords]);
+  if (!location || paradaCoords.length === 0 || !boarding) return;
 
-  const handleStartTrip = async () => {
-    if (!boarding?.id) return;
+  const { latitude, longitude } = location.coords;
+  const currentCoords = { latitude, longitude };
+
+  console.log('📌 Estado del viaje:', boarding.estado);
+  console.log('📌 Parada actual:', boarding.parada_actual);
+  console.log('📌 Coordenadas actuales:', currentCoords);
+
+  if (boarding.estado === 'programado') {
+    const firstStop = paradaCoords[0];
+    const distToFirst = getDistance(currentCoords, { latitude: firstStop.lat, longitude: firstStop.lon });
+    console.log('📏 Distancia a primera parada:', distToFirst);
+    setCanStartTrip(distToFirst <= DISTANCIA_MAXIMA_METROS);
+    setCanMarkStop(false);
+    setCanEndTrip(false);
+  }
+
+  if (boarding.estado === 'en_curso') {
+    const currentIndex = paradaCoords.findIndex(p => p.label === boarding.parada_actual);
+    console.log('🔍 Índice de parada actual:', currentIndex);
+
+    if (currentIndex !== -1) {
+      const nextStop = paradaCoords[currentIndex + 1];
+      if (nextStop) {
+        const distToNext = getDistance(currentCoords, {
+          latitude: nextStop.lat,
+          longitude: nextStop.lon,
+        });
+        console.log('➡️ Próxima parada:', nextStop.label);
+        console.log('📏 Distancia a próxima parada:', distToNext);
+        setCanMarkStop(distToNext <= DISTANCIA_MAXIMA_METROS);
+      } else {
+        setCanMarkStop(false);
+      }
+    } else {
+      console.warn('⚠️ No se encontró la parada actual en la lista de coordenadas');
+      setCanMarkStop(false);
+    }
+
+    const lastStop = paradaCoords[paradaCoords.length - 1];
+    const distToLast = getDistance(currentCoords, {
+      latitude: lastStop.lat,
+      longitude: lastStop.lon,
+    });
+    console.log('🏁 Última parada:', lastStop.label);
+    console.log('📏 Distancia a parada final:', distToLast);
+    setCanEndTrip(distToLast <= DISTANCIA_MAXIMA_METROS);
+    setCanStartTrip(false);
+  }
+
+  if (boarding.estado === 'finalizado') {
+    setCanStartTrip(false);
+    setCanMarkStop(false);
+    setCanEndTrip(false);
+  }
+}, [location, boarding?.estado, boarding?.parada_actual, paradaCoords]);
+
+
+  // Confirmar acción del modal
+  const handleConfirmAction = async () => {
+    if (!boarding?.id || !selectedStopName) return;
+
+    const now = new Date();
+    const horaLlegada = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const boardingRef = doc(db, 'boarding', boarding.id);
+    const historialRef = collection(db, `boarding/${boarding.id}/historial_paradas`);
 
     try {
-      const boardingRef = doc(db, 'boarding', boarding.id);
-      await updateDoc(boardingRef, { estado: 'en_curso' });
-      console.log('✅ Estado del viaje actualizado a "en_curso"');
-    } catch (error) {
-      console.error('❌ Error al actualizar el estado del viaje:', error);
-    }
-  };
+      if (modalAction === 'start') {
+        await updateDoc(boardingRef, {
+          estado: 'en_curso',
+          parada_actual: selectedStopName,
+          hora_llegada: horaLlegada,
+        });
+      } else if (modalAction === 'arrival') {
+        await updateDoc(boardingRef, {
+          parada_actual: selectedStopName,
+          hora_llegada: horaLlegada,
+        });
+      } else if (modalAction === 'end') {
+        await updateDoc(boardingRef, {
+          estado: 'finalizado',
+          parada_actual: selectedStopName,
+          hora_llegada: horaLlegada,
+        });
+      }
 
+      await addDoc(historialRef, {
+        nombre: selectedStopName,
+        hora_llegada: horaLlegada,
+        timestamp: now,
+      });
+
+      console.log(`✅ Acción "${modalAction}" registrada`);
+    } catch (err) {
+      console.error('❌ Error:', err);
+    }
+
+    setModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" onPress={() => router.back()} />
+          <MaterialIcons name="arrow-back" size={30} color="#fff" onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Ruta en curso</Text>
         </View>
         <View style={styles.userCircle}>
-          <Text style={styles.userInitial}>{userData?.nombre?.charAt(0).toUpperCase() ?? 'U'}</Text>
+          <Text style={styles.userInitial}>{userData?.nombre?.[0]?.toUpperCase() || 'U'}</Text>
         </View>
       </View>
 
-      {/* Mapa */}
       <View style={styles.mapContainer}>
         {location ? (
           <MapView
@@ -170,22 +227,17 @@ export default function RouteInProgressScreen() {
               latitudeDelta: 0.05,
               longitudeDelta: 0.05,
             }}
-            showsUserLocation={true}
+            showsUserLocation
           >
-            {paradaCoords.map((parada, index) => (
-              <Marker
-                key={index}
-                coordinate={{ latitude: parada.lat, longitude: parada.lon }}
-                title={parada.label}
-              />
+            {paradaCoords.map((p, i) => (
+              <Marker key={i} coordinate={{ latitude: p.lat, longitude: p.lon }} title={p.label} />
             ))}
           </MapView>
         ) : (
-          <ActivityIndicator style={{ marginTop: 20 }} size="large" color="#08173B" />
+          <ActivityIndicator size="large" color="#08173B" style={{ marginTop: 20 }} />
         )}
       </View>
 
-      {/* Información de la ruta */}
       <View style={styles.infoCard}>
         <View style={styles.routeRow}>
           <Text style={styles.routeCity}>{boarding?.desde ?? '—'}</Text>
@@ -193,43 +245,64 @@ export default function RouteInProgressScreen() {
           <Text style={styles.routeCity}>{boarding?.hasta ?? '—'}</Text>
         </View>
         <View style={styles.routeStops}>
-          {boarding?.paradas?.map((stop, index) => (
-            <View key={index} style={styles.stopRow}>
-              <MaterialCommunityIcons name={index === 0 ? 'map-marker-radius-outline' : 'map-marker-outline'} size={18} />
-              <Text style={styles.stopText}>{stop}</Text>
+          {boarding?.paradas?.map((s, i) => (
+            <View key={i} style={styles.stopRow}>
+              <MaterialCommunityIcons name={i === 0 ? 'map-marker-radius-outline' : 'map-marker-outline'} size={18} />
+              <Text style={styles.stopText}>{s}</Text>
             </View>
           ))}
         </View>
       </View>
 
-      {/* Acciones */}
       <View style={styles.actionsContainer}>
         <TouchableOpacity
-          style={[styles.actionButton, !canStartTrip && { backgroundColor: '#ccc' }]}
-          onPress={handleStartTrip}
           disabled={!canStartTrip}
+          style={[styles.actionButton, (boarding?.estado !== 'programado' || !canStartTrip) && { backgroundColor: '#ccc' }]}
+          onPress={() => {
+            setModalAction('start');
+            setSelectedStopName(paradaCoords[0]?.label || '');
+            setModalVisible(true);
+          }}
         >
           <MaterialIcons name="directions-bus" size={38} color="#fff" />
           <Text style={styles.actionText}>Iniciar</Text>
-          <Text style={styles.actionText}>Viaje</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
-          style={[styles.actionButton, boarding?.estado !== 'en_curso' && { backgroundColor: '#ccc' }]}
-          disabled={boarding?.estado !== 'en_curso'}
+          disabled={!canMarkStop}
+          style={[styles.actionButton, !canMarkStop && { backgroundColor: '#ccc' }]}
+          onPress={() => {
+            const next = paradaCoords.find(p => p.label !== boarding?.parada_actual);
+            setModalAction('arrival');
+            setSelectedStopName(next?.label || '');
+            setModalVisible(true);
+          }}
         >
           <MaterialIcons name="my-location" size={38} color="#fff" />
           <Text style={styles.actionText}>Parada</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, boarding?.estado !== 'en_curso' && { backgroundColor: '#ccc' }]}
-          disabled={boarding?.estado !== 'en_curso'}
-          onPress={() => router.navigate("/driver/summary")}
+          disabled={!canEndTrip}
+          style={[styles.actionButton, !canEndTrip && { backgroundColor: '#ccc' }]}
+          onPress={() => {
+            setModalAction('end');
+            setSelectedStopName(paradaCoords[paradaCoords.length - 1]?.label || '');
+            setModalVisible(true);
+          }}
         >
           <MaterialCommunityIcons name="flag-outline" size={38} color="#fff" />
           <Text style={styles.actionText}>Finalizar</Text>
         </TouchableOpacity>
       </View>
+
+      <TripConfirmationModal
+        visible={modalVisible}
+        action={modalAction}
+        stopName={selectedStopName}
+        onCancel={() => setModalVisible(false)}
+        onConfirm={handleConfirmAction}
+      />
     </View>
   );
 }

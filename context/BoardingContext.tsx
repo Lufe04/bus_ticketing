@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
-  collection, addDoc, getDocs, query, where, orderBy, Timestamp
+  collection, addDoc, getDocs, query, where, orderBy, Timestamp, getDoc, doc, getFirestore
 } from 'firebase/firestore';
 import { db } from '../utils/FirebaseConfig';
 import { useUser } from './UserContext';
@@ -55,6 +55,8 @@ interface BoardingContextType {
   getCompletedBoardingsGrouped: (month?: number, year?: number) => Record<string, RouteEntry[]>;
   selectedPassenger: Passenger | null; // ✅ NUEVO
   setSelectedPassenger: (passenger: Passenger | null) => void;
+  refreshBoarding: () => Promise<void>; // Añadido para refrescar el boarding actual
+  getActiveBoarding: () => Boarding | null; // Añadido para obtener el boarding activo
 }
 
 // Crear contexto
@@ -132,6 +134,27 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
     return upcoming.length > 0 ? upcoming[0] : null;
   };
+
+  const getActiveBoarding = (): Boarding | null => {
+    return boardings.find(b => b.estado === 'en_curso') || null;
+  };
+
+
+  const refreshBoarding = async () => {
+    const current = getCurrentBoarding();
+    if (!current?.id) return;
+    const ref = doc(db, 'boarding', current.id);
+    const snapshot = await getDoc(ref);
+    if (snapshot.exists()) {
+      const updated = snapshot.data();
+      setBoardings((prev) =>
+        prev.map((b) =>
+          b.id === current.id ? { ...b, ...updated } as Boarding : b
+        )
+      );
+    }
+  };
+
 
   const addBoarding = async (data: Omit<Boarding, 'id'>) => {
     try {
@@ -224,6 +247,8 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         getCompletedBoardingsGrouped,
         selectedPassenger, // ✅ NUEVO
         setSelectedPassenger,
+        refreshBoarding, // Añadido para refrescar el boarding actual
+        getActiveBoarding, // Añadido para obtener el boarding activo
       }}
     >
       {children}
