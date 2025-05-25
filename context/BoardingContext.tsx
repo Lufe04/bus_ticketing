@@ -17,6 +17,7 @@ export interface Passenger {
   nombre: string;
   puesto: number;
   idUsuario: string;
+  pushToken?: string;
 }
 
 export interface Boarding {
