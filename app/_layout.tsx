@@ -6,7 +6,7 @@ import Constants, { UserInterfaceIdiom } from 'expo-constants';
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { UserProvider } from "@/context/UserContext";
-import { ChatContextProvider } from "@/context/ChatContext";
+import { ChatContextProvider } from "@/context/chatContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({

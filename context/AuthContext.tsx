@@ -38,7 +38,7 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   loading: boolean;
   isAuthenticated: boolean;
-  userData: UserData | null; // Añadida esta propiedad
+  userData: UserData | null;
   
   // Funciones de autenticación básicas
   login: (email: string, password: string) => Promise<FirebaseUser | null>;
@@ -69,45 +69,43 @@ export const useAuth = () => {
 // Proveedor del contexto
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null); // Añadido estado para userData
+  const [userData, setUserData] = useState<UserData | null>(null); // Solo una declaración
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null)
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
-      setLoading(false);
       
       // Aquí podrías cargar los datos del usuario desde Firestore
       if (user) {
         // Ejemplo de cómo podrías cargar los datos del usuario 
         // (deberías implementar fetchUserData según tu estructura)
-        fetchUserData(user.uid)
-          .then(data => setUserData(data))
-          .catch(error => console.error('Error al cargar datos de usuario:', error));
+        try {
+          const data = await fetchUserData(user.uid);
+          setUserData(data);
+        } catch (error) {
+          console.error('Error al cargar datos de usuario:', error);
+          setUserData(null);
+        }
       } else {
         setUserData(null);
       }
+      
+      setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  // Función para cargar datos del usuario (debes implementarla)
+  // Función para cargar datos del usuario desde Firestore
   const fetchUserData = async (userId: string): Promise<UserData | null> => {
-    // Implementa esta función según tu estructura de datos
-    // Por ejemplo, obteniendo los datos desde Firestore
     try {
-      // Ejemplo: const userDoc = await getDoc(doc(firestore, 'users', userId));
-      // return userDoc.exists() ? userDoc.data() as UserData : null;
-      
-      // Retornar datos de ejemplo (reemplaza esto con tu implementación real)
-      return {
-        nombre: 'Usuario',
-        apellido: 'Ejemplo',
-        email: 'usuario@ejemplo.com'
-      };
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return userDoc.data() as UserData;
+      }
+      return null;
     } catch (error) {
       console.error('Error al obtener datos de usuario:', error);
       return null;
@@ -127,6 +125,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return user;
     } catch (error) {
       console.error('Error de inicio de sesión:', error);
+      throw error;
+    }
+  };
+
+  // Inicio de sesión con carga de perfil (implementación faltante)
+  const loginWithProfile = async (email: string, password: string): Promise<any> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Cargar datos del usuario
+      const userData = await fetchUserData(user.uid);
+      setUserData(userData);
+      
+      return {
+        user,
+        userData
+      };
+    } catch (error) {
+      console.error('Error en loginWithProfile:', error);
       throw error;
     }
   };
@@ -218,11 +236,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     currentUser,
-    userData, // Incluir userData en el valor del contexto
+    userData,
     loading,
     isAuthenticated: !!currentUser,
     login,
-    loginWithProfile,
+    loginWithProfile, // Añadida la función que faltaba
     register,
     registerWithProfile,
     logout,
