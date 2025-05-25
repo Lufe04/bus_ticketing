@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { UserProvider } from "@/context/UserContext";
 import { ChatContextProvider } from "@/context/ChatContext";
 import { BoardingProvider } from "@/context/BoardingContext";
+import { RoutesProvider } from "@/context/RoutesContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -122,6 +123,7 @@ export default function RootLayout() {
       <UserProvider>
         <ChatContextProvider>
           <BoardingProvider>
+            <RoutesProvider>
       <Stack
         screenOptions={{ headerShown: false }} 
       >
@@ -129,6 +131,7 @@ export default function RootLayout() {
         <Stack.Screen name="(app)"/>
         <Stack.Screen name="index"/>
       </Stack>
+      </RoutesProvider>
       </BoardingProvider>
       </ChatContextProvider>
       </UserProvider>

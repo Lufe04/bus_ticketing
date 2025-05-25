@@ -14,6 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useBoarding } from '../../../context/BoardingContext'; // Ajusta la ruta si es necesario
 import { Boarding } from '../../../context/BoardingContext';
+import { useRoutes } from '../../../context/RoutesContext';
+import { useUser } from '../../../context/UserContext';
+import { Alert } from 'react-native';
 
 // Paleta de colores (misma que en index)
 const COLORS = {
@@ -44,6 +47,8 @@ export default function SelectScreen() {
   const dateString = params.date as string || new Date().toISOString();
   const passengers = parseInt(params.passengers as string || '1');
   const date = new Date(dateString);
+  const { addRoute } = useRoutes(); // Agregar este hook
+  const { userData } = useUser(); // Agregar este hook
 
   // Formatear la fecha para mostrarla en el resumen
   const formattedDate = date.toLocaleDateString('es-ES', {
@@ -75,16 +80,85 @@ export default function SelectScreen() {
   }, [from, to, dateString]);
 
   // Manejador para comprar un pasaje
-  const handleBuyTicket = (boarding: Boarding) => {
-    // Aquí puedes navegar a la pantalla de compra o reserva
-    router.push({
-      pathname: '/client/ticketScreen',
-      params: { 
-        boardingId: boarding.id,
-        passengers: String(passengers)
-      }
+    // Añadir un log para verificar que el objeto se está creando correctamente
+// Manejador para comprar un pasaje
+const handleBuyTicket = async (boarding: Boarding) => {
+  if (!userData?.id) {
+    Alert.alert("Error", "Debe iniciar sesión para comprar un tiquete");
+    return;
+  }
+
+  try {
+    // Formatear fechas para guardar en la BD
+    const departureDate = boarding.hora_inicio && typeof boarding.hora_inicio.toDate === 'function'
+      ? boarding.hora_inicio.toDate()
+      : new Date(boarding.hora_inicio as unknown as string | number | Date);
+    
+    const formattedDate = departureDate.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
     });
-  };
+
+    const departureTime = formatTime(boarding.hora_inicio);
+
+    // Crear objeto de tiquete usando la estructura de ClientRoute
+    const newTicket = {
+      cantidad: String(passengers),
+      desde: boarding.desde,
+      hasta: boarding.hasta,
+      fecha_regreso: '', // Vacío para viajes sólo de ida
+      fecha_salida: formattedDate,
+      usuario: userData.id,
+      createdAt: new Date().toISOString(),
+      asiento: String(Math.floor(Math.random() * 40) + 1), // Asiento aleatorio entre 1-40
+      hora: departureTime,
+      boarding_id: boarding.id, // Referencia al boarding original
+      estado: "activo" as const, // Estado inicial siempre activo
+      escaneado: false, // No escaneado inicialmente
+      viaje_id: `VIAJE-${boarding.id}-${Date.now()}` // ID único para este viaje
+    };
+
+    console.log("Intentando guardar ticket:", newTicket);
+    
+    // Guardar en la colección usando el contexto
+    const result = await addRoute(newTicket);
+    console.log("Resultado de addRoute:", result);
+
+    if (result) {
+      // También podemos añadir el pasajero a la lista de pasajeros del boarding
+      try {
+        // Código para añadir el pasajero al boarding si es necesario
+      } catch (error) {
+        console.error("Error al actualizar pasajeros del boarding:", error);
+        // No interrumpir el flujo si esto falla
+      }
+      
+      Alert.alert(
+        "¡Compra exitosa!",
+        "Tu tiquete ha sido reservado exitosamente",
+        [
+          { 
+            text: "Ver mis tiquetes",
+            onPress: () => router.push('/client/ticketScreen')
+          },
+          {
+            text: "Volver al inicio",
+            onPress: () => router.push('/client')
+          }
+        ]
+      );
+    } else {
+      throw new Error("No se pudo procesar la compra");
+    }
+  } catch (error) {
+    console.error("Error al comprar tiquete:", error);
+    Alert.alert(
+      "Error",
+      "No se pudo completar la compra del tiquete. Inténtalo nuevamente."
+    );
+  }
+};
 
   // Formatear la hora a partir de un Timestamp
   const formatTime = (timestamp: any) => {

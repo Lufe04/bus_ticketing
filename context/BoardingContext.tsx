@@ -34,6 +34,7 @@ export interface Boarding {
   estado: 'programado' | 'en_curso' | 'finalizado';
   historial_paradas?: BoardingHistory[];
   pasajeros_lista?: Passenger[];
+  asientosDisponibles?: number; // Añadido para permitir el campo calculado
 }
 
 type RouteEntry = {
@@ -76,6 +77,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPassenger, setSelectedPassenger] = useState<Passenger | null>(null);
+  const MAX_ASIENTOS_POR_BUS = 20;
 
   const { userData } = useUser();
 
@@ -98,7 +100,7 @@ const searchBoardings = async (from: string, to: string, date: Date): Promise<Bo
     // Normalizar la fecha de búsqueda para comparación (solo fecha, sin tiempo)
     const searchDateStr = date.toDateString();
     
-    snapshot.docs.forEach(doc => {
+    for (const doc of snapshot.docs) {
       const data = doc.data() as Boarding;
       
       // Convertir Timestamp a Date si es necesario
@@ -116,20 +118,44 @@ const searchBoardings = async (from: string, to: string, date: Date): Promise<Bo
       console.log(`🔍 Comparando: BD(${data.desde.trim()} → ${data.hasta.trim()}) vs Búsqueda(${cleanFrom} → ${cleanTo})`);
       console.log(`📅 Fecha BD: ${tripDateStr} vs Búsqueda: ${searchDateStr}`);
       
-      // Verificar si coinciden los criterios
+      // Verificar si coinciden los criterios básicos
       if (
         tripDateStr === searchDateStr &&
         fromMatches &&
         toMatches &&
         data.estado !== 'finalizado'
       ) {
-        console.log(`✅ Viaje encontrado: ${data.desde} → ${data.hasta}`);
-        results.push({
-          id: doc.id,
-          ...data
-        });
+        // NUEVO: Obtener la lista de pasajeros para calcular asientos disponibles
+        const pasajerosSnapshot = await getDocs(collection(doc.ref, 'pasajeros'));
+        const pasajeros_lista: Passenger[] = pasajerosSnapshot.docs.map(docPasajero => docPasajero.data() as Passenger);
+        
+        // Calcular asientos disponibles
+        const pasajerosActuales = pasajeros_lista.length;
+        const asientosDisponibles = MAX_ASIENTOS_POR_BUS - pasajerosActuales;
+        
+        console.log(`📊 Viaje encontrado: ${data.desde} → ${data.hasta}`);
+        console.log(`👥 Pasajeros actuales: ${pasajerosActuales}/${MAX_ASIENTOS_POR_BUS}`);
+        console.log(`💺 Asientos disponibles: ${asientosDisponibles}`);
+        
+        // Solo incluir si hay asientos disponibles
+        if (asientosDisponibles > 0) {
+          // También obtener historial de paradas
+          const historialSnapshot = await getDocs(collection(doc.ref, 'historial_paradas'));
+          const historial: BoardingHistory[] = historialSnapshot.docs.map(docHistorial => docHistorial.data() as BoardingHistory);
+          
+          results.push({
+            id: doc.id,
+            ...data,
+            pasajeros: MAX_ASIENTOS_POR_BUS, // Actualizar con el máximo real
+            asientosDisponibles: asientosDisponibles, // Añadir campo calculado
+            historial_paradas: historial,
+            pasajeros_lista: pasajeros_lista,
+          });
+        } else {
+          console.log(`❌ Viaje completo (sin asientos disponibles)`);
+        }
       }
-    });
+    }
     
     // Ordenar por hora de inicio
     results.sort((a, b) => {
@@ -142,7 +168,7 @@ const searchBoardings = async (from: string, to: string, date: Date): Promise<Bo
       return timeA.getTime() - timeB.getTime();
     });
     
-    console.log(`✅ Se encontraron ${results.length} viajes que coinciden con los criterios`);
+    console.log(`✅ Se encontraron ${results.length} viajes con asientos disponibles`);
     return results;
   } catch (err) {
     console.error('❌ Error buscando viajes:', err);
