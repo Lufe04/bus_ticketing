@@ -26,7 +26,7 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "NOTIFICATIONS"
+        "NOTIFICATIONS", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"
       ]
     },
     "config": {

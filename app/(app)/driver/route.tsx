@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useBoarding } from '../../../context/BoardingContext';
-import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
+import UserMenuModal from '../../../components/UserModal';
 
 export default function RouteInfoScreen() {
   const router = useRouter();
   const { getCurrentBoarding } = useBoarding();
-  const { userData } = useAuth();
+  const { userData } = useUser();
   const boarding = getCurrentBoarding();
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
@@ -32,12 +34,12 @@ export default function RouteInfoScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" onPress={() => router.back()} />
+          <MaterialIcons name="arrow-back" size={30} color="#FFFFFF" onPress={() => router.replace("/(app)/driver")} />
           <Text style={styles.headerTitle}>Información de la ruta</Text>
         </View>
-        <View style={styles.userCircle}>
+        <TouchableOpacity style={styles.userCircle} onPress={() => setMenuVisible(true)}>
           <Text style={styles.userInitial}>{inicial}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>Ruta en Curso</Text>
@@ -79,7 +81,7 @@ export default function RouteInfoScreen() {
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={[styles.scanButton, disableScanButton && { backgroundColor: '#ccc' }]}
-          disabled={disableScanButton}
+          //disabled={disableScanButton}
           onPress={() => router.push('/driver/scan')}
         >
           <Text style={styles.scanButtonText}>Escanear Pasajes</Text>
@@ -87,7 +89,7 @@ export default function RouteInfoScreen() {
 
         <TouchableOpacity
           style={[styles.startButton, disableStartButton && { backgroundColor: '#ccc' }]}
-          disabled={disableStartButton}
+          //disabled={disableStartButton}
           onPress={() => router.push('/driver/routeMap')}
         >
           <Text style={styles.startButtonText}>
@@ -95,55 +97,147 @@ export default function RouteInfoScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+      <UserMenuModal visible={menuVisible} onClose={() => setMenuVisible(false)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
   header: {
-    backgroundColor: '#08173B', padding: 20,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    backgroundColor: '#08173B', 
+    padding: 20,
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 24, 
+    borderBottomRightRadius: 24,
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 22, 
+    fontWeight: '400' 
+  },
   userCircle: {
-    backgroundColor: '#FFFFFF', width: 50, height: 50, borderRadius: 25,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#FFFFFF', 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25,
+    alignItems: 'center', 
+    justifyContent: 'center',
   },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
-  sectionTitle: { fontSize: 24, fontWeight: '700', color: '#000', marginVertical: 20, marginLeft: 20 },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
+  sectionTitle: { 
+    fontSize: 24, 
+    fontWeight: '700', 
+    color: '#000', 
+    marginVertical: 20, 
+    marginLeft: 20 
+  },
   card: {
-    backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16,
-    borderColor: '#D9D9D9', borderWidth: 1, marginHorizontal: 20,
+    backgroundColor: '#FFFFFF', 
+    padding: 16, 
+    borderRadius: 16,
+    borderColor: '#D9D9D9', 
+    borderWidth: 1, 
+    marginHorizontal: 20,
   },
-  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 },
-  routeCity: { fontWeight: '700', fontSize: 20 },
-  routeDetails: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  detailItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  detailText: { color: '#989898', fontSize: 18, fontWeight: '400', marginLeft: 2 },
-  divider: { height: 1, backgroundColor: '#D9D9D9', marginVertical: 8 },
-  stopsTitle: { fontSize: 20, fontWeight: '700', marginBottom: 12, marginTop: 5 },
-  stopList: { gap: 4 },
-  stopItem: { fontSize: 18, color: '#000' },
+  routeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 10, 
+    gap: 6 
+  },
+  routeCity: { 
+    fontWeight: '700', 
+    fontSize: 20 
+  },
+  routeDetails: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    marginBottom: 8 
+  },
+  detailItem: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 4 
+  },
+  detailText: { 
+    color: '#989898', 
+    fontSize: 18, 
+    fontWeight: '400', 
+    marginLeft: 2 
+  },
+  divider: { 
+    height: 1, 
+    backgroundColor: '#D9D9D9', 
+    marginVertical: 8 
+  },
+  stopsTitle: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    marginBottom: 12, 
+    marginTop: 5 
+  },
+  stopList: { 
+    gap: 4 
+  },
+  stopItem: { 
+    fontSize: 18, 
+    color: '#000' 
+  },
   buttonsContainer: {
-    position: 'absolute', bottom: 30, left: 16, right: 16, alignItems: 'center', gap: 12,
+    position: 'absolute', 
+    bottom: 30, 
+    left: 16, 
+    right: 16, 
+    alignItems: 'center', 
+    gap: 12,
   },
   scanButton: {
-    backgroundColor: '#08173B', paddingVertical: 8, paddingHorizontal: 30,
-    borderRadius: 15, width: '80%', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4,
+    backgroundColor: '#08173B', 
+    paddingVertical: 8, 
+    paddingHorizontal: 30,
+    borderRadius: 15, 
+    width: '80%', 
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.2, 
+    shadowRadius: 4,
   },
-  scanButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 18 },
+  scanButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    fontSize: 18 
+  },
   startButton: {
-    backgroundColor: '#20ADF5', paddingVertical: 8, paddingHorizontal: 30,
-    borderRadius: 15, width: '80%', alignItems: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4,
+    backgroundColor: '#20ADF5', 
+    paddingVertical: 8, 
+    paddingHorizontal: 30,
+    borderRadius: 15, 
+    width: '80%', 
+    alignItems: 'center',
+    shadowColor: '#000', 
+    shadowOffset: { width: 0, height: 2 }, 
+    shadowOpacity: 0.2, 
+    shadowRadius: 4,
   },
-  startButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 18 },
+  startButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    fontSize: 18 
+  },
 });

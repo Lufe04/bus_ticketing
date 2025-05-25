@@ -30,7 +30,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuth();
+  const {  loginWithProfile, } = useAuth();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -42,7 +42,7 @@ export default function Login() {
     setIsLoading(true);
     try {
       // Modifica la función login para que devuelva los datos del usuario
-      const userData = await login(email, password);
+      const userData = await loginWithProfile(email, password);
       
       // Usar el rol real del usuario para la navegación
       if (userData && userData.role === 'driver') {

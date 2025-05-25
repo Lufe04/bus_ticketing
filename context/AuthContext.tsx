@@ -7,7 +7,8 @@ import {
   sendPasswordResetEmail,
   User as FirebaseUser 
 } from 'firebase/auth';
-import { auth } from '../utils/FirebaseConfig';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db  } from '../utils/FirebaseConfig';
 
 // Definir tipos para los datos de registro
 export interface RegisterUserData {
@@ -41,6 +42,7 @@ interface AuthContextType {
   
   // Funciones de autenticación básicas
   login: (email: string, password: string) => Promise<FirebaseUser | null>;
+  loginWithProfile: (email: string, password: string) => Promise<any>;
   register: (email: string, password: string) => Promise<FirebaseUser | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -69,10 +71,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null); // Añadido estado para userData
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null)
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       setLoading(false);
       
@@ -219,6 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     isAuthenticated: !!currentUser,
     login,
+    loginWithProfile,
     register,
     registerWithProfile,
     logout,

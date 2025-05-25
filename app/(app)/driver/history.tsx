@@ -4,8 +4,8 @@ import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import UserMenuModal from '../../../components/UserModal';
 import { useBoarding } from '../../../context/BoardingContext';
-import { useAuth } from '../../../context/AuthContext';
-import ModalPicker from '../../../components/PickerModal'; // Asegúrate que sea export default
+import { useUser } from '../../../context/UserContext';
+import ModalPicker from '../../../components/PickerModal'; 
 
 export default function DriverHistoryScreen() {
   const router = useRouter();
@@ -16,7 +16,7 @@ export default function DriverHistoryScreen() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
-  const { userData } = useAuth();
+  const { userData } = useUser();
   const { getCompletedBoardingsGrouped } = useBoarding();
 
   const nombreUsuario = userData?.nombre || 'Usuario';
@@ -130,40 +130,139 @@ export default function DriverHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   header: {
-    backgroundColor: '#08173B', padding: 20,
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderBottomLeftRadius: 24, borderBottomRightRadius: 24
+    backgroundColor: '#08173B', 
+    padding: 20,
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    borderBottomLeftRadius: 24, 
+    borderBottomRightRadius: 24
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 25, fontWeight: '600' },
-  headerSubtitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '400' },
-  userCircle: { backgroundColor: '#FFFFFF', width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
-  filters: { flexDirection: 'row', justifyContent: 'center', marginTop: 16, gap: 16 },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 25, 
+    fontWeight: '600' 
+  },
+  headerSubtitle: { 
+    color: '#FFFFFF', 
+    fontSize: 19, 
+    fontWeight: '400' 
+  },
+  userCircle: { 
+    backgroundColor: '#FFFFFF', 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
+  filters: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    marginTop: 16, 
+    gap: 16 
+  },
   dropdown: {
-    backgroundColor: '#FFFFFF', borderWidth: 0.5, borderColor: 'rgba(50, 50, 50, 0.8)', borderRadius: 20,
-    paddingHorizontal: 16, paddingVertical: 6, flexDirection: 'row', alignItems: 'center'
+    backgroundColor: '#FFFFFF', 
+    borderWidth: 0.5, 
+    borderColor: 'rgba(50, 50, 50, 0.8)', 
+    borderRadius: 20,
+    paddingHorizontal: 16, 
+    paddingVertical: 6, 
+    flexDirection: 'row', 
+    alignItems: 'center'
   },
-  dropdownText: { marginRight: 6, fontSize: 15, fontWeight: '400', color: '#000' },
-  dateText: { fontSize: 18, fontWeight: '500', marginHorizontal: 16, marginTop: 24, marginBottom: 12 },
+  dropdownText: { 
+    marginRight: 6, 
+    fontSize: 15, 
+    fontWeight: '400', 
+    color: '#000' 
+  },
+  dateText: { 
+    fontSize: 18, 
+    fontWeight: '500', 
+    marginHorizontal: 16, 
+    marginTop: 24,
+    marginBottom: 12 
+  },
   routeCard: {
-    backgroundColor: '#FFFFFF', marginHorizontal: 16, marginBottom: 16, borderRadius: 24,
-    borderWidth: 0.5, borderColor: 'rgba(50, 50, 50, 0.8)', padding: 10
+    backgroundColor: '#FFFFFF', 
+    marginHorizontal: 16, 
+    marginBottom: 16, 
+    borderRadius: 24,
+    borderWidth: 0.5, 
+    borderColor: 'rgba(50, 50, 50, 0.8)', 
+    padding: 10
   },
-  routeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  routeCity: { fontSize: 15, fontWeight: '400', color: 'rgba(50, 50, 50, 0.8)' },
-  routeFooter: { flexDirection: 'row', alignItems: 'center' },
-  routeDuration: { fontSize: 15, color: 'rgba(50, 50, 50, 0.8)' },
-  statusBadge: { backgroundColor: '#43C63C', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10, marginLeft: 'auto' },
-  statusText: { fontSize: 11, fontWeight: '600', color: "#000000CC" },
+  routeHeader: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 10 
+  },
+  routeCity: { 
+    fontSize: 15, 
+    fontWeight: '400', 
+    color: 'rgba(50, 50, 50, 0.8)' 
+  },
+  routeFooter: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  routeDuration: { 
+    fontSize: 15, 
+    color: 'rgba(50, 50, 50, 0.8)' 
+  },
+  statusBadge: { 
+    backgroundColor: '#43C63C', 
+    paddingHorizontal: 12, 
+    paddingVertical: 4, 
+    borderRadius: 10, 
+    marginLeft: 'auto' 
+  },
+  statusText: { 
+    fontSize: 11, 
+    fontWeight: '600', 
+    color: "#000000CC" 
+  },
   navbar: {
-    position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#FFFFFF',
-    paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderColor: '#E5E7EB'
+    position: 'absolute', 
+    bottom: 0, 
+    width: '100%', 
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10, 
+    flexDirection: 'row', 
+    justifyContent: 'space-around', 
+    borderTopWidth: 1, 
+    borderColor: '#E5E7EB'
   },
-  navItem: { alignItems: 'center' },
-  navbarIcon: { color: '#000000' },
-  navbarIconActive: { color: '#20ADF5' },
-  navLabel: { fontSize: 12, color: '#000', marginTop: 2 },
-  navLabelActive: { fontSize: 12, color: '#20ADF5', marginTop: 2, fontWeight: '600' }
+  navItem: { 
+    alignItems: 'center' 
+  },
+  navbarIcon: { 
+    color: '#000000' 
+  },
+  navbarIconActive: { 
+    color: '#20ADF5' 
+  },
+  navLabel: { 
+    fontSize: 12, 
+    color: '#000', 
+    marginTop: 2 
+  },
+  navLabelActive: { 
+    fontSize: 12, 
+    color: '#20ADF5', 
+    marginTop: 2, 
+    fontWeight: '600' 
+  }
 });

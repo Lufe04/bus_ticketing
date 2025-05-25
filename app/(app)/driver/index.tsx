@@ -5,13 +5,13 @@ import { useRouter } from 'expo-router';
 import UserMenuModal from '../../../components/UserModal';
 import { useBoarding } from '../../../context/BoardingContext';
 import { Timestamp } from 'firebase/firestore';
-import { useAuth } from '../../../context/AuthContext';
+import { useUser } from '../../../context/UserContext';
 
 export default function DriverHomeScreen() {
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const { boardings, getCurrentBoarding } = useBoarding();
-  const { userData } = useAuth();
+  const { userData } = useUser();
 
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
@@ -25,14 +25,6 @@ export default function DriverHomeScreen() {
   )
   .sort((a, b) => a.hora_inicio.seconds - b.hora_inicio.seconds)
   .slice(0, 5);
-
-
-
-  useEffect(() => {
-    console.log('📦 Todos los boardings:', boardings);
-    console.log('✅ Boarding actual:', currentBoarding);
-    console.log('🔜 Siguientes rutas:', nextBoardings);
-  }, [boardings]);
 
   const formatTime = (timestamp?: Timestamp) => {
     if (!timestamp?.toDate) return '—';
@@ -154,40 +146,159 @@ export default function DriverHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
-  header: { backgroundColor: '#08173B', padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  headerTitle: { color: '#FFFFFF', fontSize: 25, fontWeight: '600' },
-  headerSubtitle: { color: '#FFFFFF', fontSize: 19, fontWeight: '400' },
-  userCircle: { backgroundColor: '#FFFFFF', width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
-  card: { backgroundColor: '#FFFFFF', margin: 16, padding: 16, borderRadius: 24, borderColor: '#D9D9D9', borderWidth: 1 },
-  sectionTitle: { fontWeight: '600', fontSize: 16, marginBottom: 10, color: '#000000' },
-  sectionTitle2: { fontWeight: '600', fontSize: 20, marginHorizontal: 16, marginTop: 6, marginBottom: 20, color: '#000000' },
-  routeRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10, gap: 10 },
-  routeCity: { fontSize: 18, fontWeight: '600' },
-  routeDetails: { flexDirection: 'row', alignItems: 'center', gap: 30, marginBottom: 0 },
-  group: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 14 },
-  routeText: { fontSize: 15, color: '#989898', marginHorizontal: 4 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
+  header: { 
+    backgroundColor: '#08173B', 
+    padding: 20, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 25, 
+    fontWeight: '600' 
+  },
+  headerSubtitle: { 
+    color: '#FFFFFF', 
+    fontSize: 19, 
+    fontWeight: '400' 
+  },
+  userCircle: { 
+    backgroundColor: '#FFFFFF', 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
+  card: { 
+    backgroundColor: '#FFFFFF', 
+    margin: 16, 
+    padding: 16, 
+    borderRadius: 24, 
+    borderColor: '#D9D9D9', 
+    borderWidth: 1 
+  },
+  sectionTitle: { 
+    fontWeight: '600', 
+    fontSize: 16, 
+    marginBottom: 10, 
+    color: '#000000' 
+  },
+  sectionTitle2: { 
+    fontWeight: '600', 
+    fontSize: 20, 
+    marginHorizontal: 16, 
+    marginTop: 6, 
+    marginBottom: 20, 
+    color: '#000000' 
+  },
+  routeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'flex-end', 
+    marginBottom: 10, 
+    gap: 10 
+  },
+  routeCity: { 
+    fontSize: 18, 
+    fontWeight: '600' 
+  },
+  routeDetails: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 30, 
+    marginBottom: 0 
+  },
+  group: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 5, 
+    marginBottom: 14 
+  },
+  routeText: { 
+    fontSize: 15, 
+    color: '#989898', 
+    marginHorizontal: 4 
+  },
   startButton: {
-    backgroundColor: '#20ADF5', paddingVertical: 8, borderRadius: 15, alignItems: 'center',
-    shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25,
-    shadowRadius: 4, elevation: 4
+    backgroundColor: '#20ADF5', 
+    paddingVertical: 8, 
+    borderRadius: 15, 
+    alignItems: 'center',
+    shadowColor: '#000000', 
+    shadowOffset: { width: 0, height: 4 }, 
+    shadowOpacity: 0.25,
+    shadowRadius: 4, 
+    elevation: 4
   },
-  startButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 18 },
+  startButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '600', 
+    fontSize: 18 
+  },
   routeBoxInactive: {
-    backgroundColor: 'rgba(152, 152, 152, 0.2)', marginHorizontal: 16, padding: 16,
-    borderRadius: 24, marginBottom: 12, borderWidth: 0.5, borderColor: 'rgba(50, 50, 50, 0.8)'
+    backgroundColor: 'rgba(152, 152, 152, 0.2)', 
+    marginHorizontal: 16, 
+    padding: 16,
+    borderRadius: 24, 
+    marginBottom: 12, 
+    borderWidth: 0.5, 
+    borderColor: 'rgba(50, 50, 50, 0.8)'
   },
-  routeBoxRow: { flexDirection: 'row', alignItems: 'center' },
-  routeTimeInactive: { fontSize: 15, color: 'rgba(50, 50, 50, 0.8)', fontWeight: '400', marginLeft: 8 },
-  routeTextRow: { fontSize: 15, fontWeight: '400', color: 'rgba(50, 50, 50, 0.8)', marginLeft: 8 },
+  routeBoxRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center' 
+  },
+  routeTimeInactive: { 
+    fontSize: 15, 
+    color: 'rgba(50, 50, 50, 0.8)', 
+    fontWeight: '400', 
+    marginLeft: 8 
+  },
+  routeTextRow: { 
+    fontSize: 15, 
+    fontWeight: '400', 
+    color: 'rgba(50, 50, 50, 0.8)', 
+    marginLeft: 8 
+  },
   navbar: {
-    position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#FFFFFF', paddingVertical: 10,
-    flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderColor: '#E5E7EB'
+    position: 'absolute', 
+    bottom: 0, 
+    width: '100%', 
+    backgroundColor: '#FFFFFF', 
+    paddingVertical: 10,
+    flexDirection: 'row', 
+    justifyContent: 'space-around', 
+    borderTopWidth: 1, 
+    borderColor: '#E5E7EB'
   },
-  navItem: { alignItems: 'center' },
-  navbarIcon: { color: '#000000' },
-  navbarIconActive: { color: '#20ADF5' },
-  navLabel: { fontSize: 12, color: '#000', marginTop: 2 },
-  navLabelActive: { fontSize: 12, color: '#20ADF5', marginTop: 2, fontWeight: '600' }
+  navItem: { 
+    alignItems: 'center' 
+  },
+  navbarIcon: { 
+    color: '#000000' 
+  },
+  navbarIconActive: { 
+    color: '#20ADF5' 
+  },
+  navLabel: { 
+    fontSize: 12, 
+    color: '#000', 
+    marginTop: 2 
+  },
+  navLabelActive: { 
+    fontSize: 12, 
+    color: '#20ADF5', 
+    marginTop: 2, 
+    fontWeight: '600' 
+  }
 });
