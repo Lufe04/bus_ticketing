@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, 
   Text, 
@@ -19,8 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../context/AuthContext';
 import { useUser } from '../../../context/UserContext';
-// Eliminamos la importación de DateTimePicker que causa problemas
-// import DateTimePicker from '@react-native-community/datetimepicker';
+import { useRoutes } from '../../../context/RoutesContext'; // Importar el contexto de rutas
 
 // Paleta de colores
 const COLORS = {
@@ -37,21 +36,57 @@ const COLORS = {
 export default function ClientHome() {
   const { currentUser, logout } = useAuth();
   const { userData, isLoading: isUserDataLoading } = useUser();
+  const { userRoutes, getUserRoutes, loading: routesLoading } = useRoutes(); // Usar el contexto de rutas
   const router = useRouter();
   
   // Estados para el formulario de búsqueda
-  const [from, setFrom] = useState('CSA');
+  const [from, setFrom] = useState('');
   const [fromDetails, setFromDetails] = useState('Ciudad, Estación o Aeropuerto');
-  const [to, setTo] = useState('CSA');
+  const [to, setTo] = useState('');
   const [toDetails, setToDetails] = useState('Ciudad, Estación o Aeropuerto');
   const [departureDate, setDepartureDate] = useState('28 abr 2025');
   const [passengerCount, setPassengerCount] = useState(1);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [profilePopupVisible, setProfilePopupVisible] = useState(false);
-  // Reemplazamos showDatePicker por el estado de visibilidad del modal
   const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
-  const [departureDateObj, setDepartureDateObj] = useState(new Date(2025, 3, 28)); // Para el DatePicker
+  const [departureDateObj, setDepartureDateObj] = useState(new Date(2025, 3, 28));
   
+  // Estado para almacenar el último ticket comprado
+  const [lastTicket, setLastTicket] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  
+  // Cargar los tickets del usuario cuando se monta el componente
+  useEffect(() => {
+    const loadUserTickets = async () => {
+      if (userData?.id) {
+        try {
+          await getUserRoutes();
+        } catch (error) {
+          console.error('Error cargando tickets del usuario:', error);
+        }
+      }
+    };
+    
+    loadUserTickets();
+  }, [userData?.id, getUserRoutes]);
+  
+  // Actualizar el último ticket cuando cambien las rutas del usuario
+  useEffect(() => {
+    if (userRoutes && userRoutes.length > 0) {
+      // Ordenar por fecha de creación (más reciente primero)
+      const sortedRoutes = [...userRoutes].sort((a, b) => {
+        const dateA = new Date(a.createdAt || '').getTime();
+        const dateB = new Date(b.createdAt || '').getTime();
+        return dateB - dateA; // Orden descendente
+      });
+      
+      // Obtener el ticket más reciente
+      setLastTicket(sortedRoutes[0]);
+    } else {
+      setLastTicket(null);
+    }
+  }, [userRoutes]);
+
   // Función para intercambiar origen y destino
   const swapLocations = () => {
     const tempFrom = from;
@@ -85,29 +120,29 @@ export default function ClientHome() {
   };
 
   const navigateToSearch = () => {
-  // Asegurar que tenemos un objeto Date válido
-  // Enviamos la fecha como string ISO, pero sin tiempo
-  const dateObj = departureDateObj;
-  dateObj.setHours(0, 0, 0, 0); // Resetear la hora a medianoche
-  
-  // Parámetros de búsqueda para enviar
-  const searchParams = {
-    from: from,
-    fromDetails: fromDetails,
-    to: to,
-    toDetails: toDetails,
-    date: dateObj.toISOString(), // Formato ISO sin tiempo
-    passengers: passengerCount.toString()
+    // Asegurar que tenemos un objeto Date válido
+    // Enviamos la fecha como string ISO, pero sin tiempo
+    const dateObj = departureDateObj;
+    dateObj.setHours(0, 0, 0, 0); // Resetear la hora a medianoche
+    
+    // Parámetros de búsqueda para enviar
+    const searchParams = {
+      from: from,
+      fromDetails: fromDetails,
+      to: to,
+      toDetails: toDetails,
+      date: dateObj.toISOString(), // Formato ISO sin tiempo
+      passengers: passengerCount.toString()
+    };
+    
+    // Navegar a la pantalla de selección con los parámetros
+    router.push({
+      pathname: '/client/selectScreen',
+      params: searchParams
+    });
   };
-  
-  // Navegar a la pantalla de selección con los parámetros
-  router.push({
-    pathname: '/client/selectScreen',
-    params: searchParams
-  });
-};
 
-  // Funciones de navegación y logout - sin cambios
+  // Funciones de navegación y logout
   const navigateToTickets = () => {
     router.push('/client/ticketScreen');
   };
@@ -120,15 +155,22 @@ export default function ClientHome() {
       Alert.alert('Error', 'No se pudo cerrar sesión');
     }
   };
+  
+  // Función para abrir el QR de un ticket específico
+  const handleOpenQR = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setQrModalVisible(true);
+  };
 
   // Obtener el nombre del usuario
   const userName = userData?.nombre || 'Usuario';
   // Primera letra del usuario para el avatar
   const userInitial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  // Modal del QR - sin cambios
+  // Modal del QR - ahora muestra los detalles del ticket seleccionado
   const renderQrModal = () => {
-    // ...código existente sin cambios
+    if (!selectedTicket) return null;
+    
     return (
       <Modal
         animationType="fade"
@@ -151,10 +193,10 @@ export default function ClientHome() {
               </View>
               
               <Text style={styles.qrInfoText}>
-                Montería → Sincelejo
+                {selectedTicket.desde} → {selectedTicket.hasta}
               </Text>
               <Text style={styles.qrDetailsText}>
-                28 Abr 2025 | 6:00 a.m. | Asiento 1
+                {selectedTicket.fecha_salida} | {selectedTicket.hora} | Asiento {selectedTicket.asiento}
               </Text>
               
               <Text style={styles.qrInstructions}>
@@ -169,7 +211,6 @@ export default function ClientHome() {
 
   // Modal del perfil - sin cambios
   const renderProfilePopup = () => {
-    // ...código existente sin cambios
     return (
       <Modal
         animationType="fade"
@@ -206,7 +247,7 @@ export default function ClientHome() {
     );
   };
 
-  // Nuevo componente: Modal del selector de fecha personalizado
+  // Componente del selector de fecha personalizado
   const renderDatePickerModal = () => {
     // Crear un array de fechas para 30 días desde hoy
     const today = new Date();
@@ -271,7 +312,7 @@ export default function ClientHome() {
   };
 
   // Mostrar pantalla de carga mientras se obtienen los datos del usuario
-  if (isUserDataLoading) {
+  if (isUserDataLoading || routesLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={[styles.loadingContainer]}>
@@ -418,44 +459,62 @@ export default function ClientHome() {
               </TouchableOpacity>
             </View>
             
-            {/* Tiquete (no clickeable) */}
-            <View style={styles.ticketCard}>
-              <View style={styles.ticketContent}>
-                <View style={styles.ticketRow}>
-                  <View style={styles.ticketIcon}>
-                    <Ionicons name="bus-outline" size={18} color={COLORS.iconGray} />
+            {lastTicket ? (
+              // Mostrar el último ticket comprado
+              <View style={styles.ticketCard}>
+                <View style={styles.ticketContent}>
+                  <View style={styles.ticketRow}>
+                    <View style={styles.ticketIcon}>
+                      <Ionicons name="bus-outline" size={18} color={COLORS.iconGray} />
+                    </View>
+                    <Text style={styles.routeText}>{lastTicket.desde} → {lastTicket.hasta}</Text>
                   </View>
-                  <Text style={styles.routeText}>Montería → Sincelejo</Text>
+                  
+                  <View style={styles.ticketDetailsRow}>
+                    <View style={styles.ticketDetailItem}>
+                      <Ionicons name="calendar-outline" size={16} color={COLORS.iconGray} />
+                      <Text style={styles.ticketDetailText}>{lastTicket.fecha_salida}</Text>
+                    </View>
+                    
+                    <View style={styles.ticketDetailItem}>
+                      <Ionicons name="person-outline" size={16} color={COLORS.iconGray} />
+                      <Text style={styles.ticketDetailText}>{lastTicket.asiento} Asiento</Text>
+                    </View>
+                    
+                    <View style={styles.ticketDetailItem}>
+                      <Ionicons name="time-outline" size={16} color={COLORS.iconGray} />
+                      <Text style={styles.ticketDetailText}>{lastTicket.hora || '6:00 a.m.'}</Text>
+                    </View>
+                  </View>
                 </View>
                 
-                <View style={styles.ticketDetailsRow}>
-                  <View style={styles.ticketDetailItem}>
-                    <Ionicons name="calendar-outline" size={16} color={COLORS.iconGray} />
-                    <Text style={styles.ticketDetailText}>28 Abr 2025</Text>
+                {/* Solo el QR es clickeable */}
+                <TouchableOpacity 
+                  style={styles.qrContainer}
+                  onPress={() => handleOpenQR(lastTicket)}
+                  disabled={lastTicket.estado !== 'activo'}
+                >
+                  <View style={[
+                    styles.qrCode,
+                    { backgroundColor: lastTicket.estado === 'activo' ? COLORS.green : COLORS.gray }
+                  ]}>
+                    <Ionicons name="qr-code-outline" size={36} color={COLORS.white} />
                   </View>
-                  
-                  <View style={styles.ticketDetailItem}>
-                    <Ionicons name="person-outline" size={16} color={COLORS.iconGray} />
-                    <Text style={styles.ticketDetailText}>1 Asiento</Text>
-                  </View>
-                  
-                  <View style={styles.ticketDetailItem}>
-                    <Ionicons name="time-outline" size={16} color={COLORS.iconGray} />
-                    <Text style={styles.ticketDetailText}>6:00 a.m.</Text>
-                  </View>
-                </View>
+                </TouchableOpacity>
               </View>
-              
-              {/* Solo el QR es clickeable */}
-              <TouchableOpacity 
-                style={styles.qrContainer}
-                onPress={() => setQrModalVisible(true)}
-              >
-                <View style={styles.qrCode}>
-                  <Ionicons name="qr-code-outline" size={36} color={COLORS.white} />
-                </View>
-              </TouchableOpacity>
-            </View>
+            ) : (
+              // Mostrar mensaje si no hay tickets
+              <View style={styles.emptyTicketsContainer}>
+                <Ionicons name="ticket-outline" size={48} color={COLORS.lightGray} />
+                <Text style={styles.emptyTicketsText}>No tienes tiquetes comprados</Text>
+                <TouchableOpacity 
+                  style={styles.bookNowButton}
+                  onPress={navigateToSearch}
+                >
+                  <Text style={styles.bookNowButtonText}>Reservar ahora</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </ScrollView>
         
@@ -469,6 +528,33 @@ export default function ClientHome() {
 }
 
 const styles = StyleSheet.create({
+  // ... Mantener todos los estilos existentes
+
+  // Añadir nuevos estilos para el mensaje de tickets vacíos
+  emptyTicketsContainer: {
+    alignItems: 'center',
+    padding: 30,
+    backgroundColor: COLORS.lightGray,
+    borderRadius: 12,
+  },
+  emptyTicketsText: {
+    fontSize: 16,
+    color: COLORS.gray,
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  bookNowButton: {
+    backgroundColor: COLORS.skyBlue,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  bookNowButtonText: {
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  
+  // Resto de los estilos existentes
   container: {
     flex: 1,
     backgroundColor: COLORS.primaryBlue,
@@ -632,7 +718,6 @@ const styles = StyleSheet.create({
     color: COLORS.primaryBlue,
     marginLeft: 4,
   },
-  // Nuevos estilos para el selector de fecha personalizado
   dateOption: {
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -665,7 +750,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray,
   },
-  // Resto de estilos sin cambios
   searchButton: {
     backgroundColor: COLORS.primaryBlue,
     borderRadius: 12,
