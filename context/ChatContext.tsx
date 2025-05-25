@@ -1,120 +1,168 @@
-import React, { createContext, useContext, useState } from "react";
-import { APIResponse } from "@/interfaces/Responses";
-import { Message } from "../interfaces/AppInterfaces";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  sendPasswordResetEmail,
+  User as FirebaseUser 
+} from 'firebase/auth';
+import { auth } from '../utils/FirebaseConfig';
 
-interface MessageWithKey extends Message {
-    key: string;
-    idts: string;
+// Definir tipos para los datos de registro
+export interface RegisterUserData {
+  email: string;
+  password: string;
+  nombre: string;
+  apellido: string;
+  role?: 'client' | 'driver' | 'handler' | 'admin';
+  documento?: string;
+  telefono?: string;
 }
 
-interface ChatContextType {
-    messages: MessageWithKey[];
-    isLoading: boolean;
-    clearMessages: () => void;
-    sendMessage: (text: string) => Promise<void>;
+// Interfaz para el contexto de autenticación
+interface AuthContextType {
+  // Estado de autenticación
+  currentUser: FirebaseUser | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  
+  // Funciones de autenticación básicas
+  login: (email: string, password: string) => Promise<FirebaseUser | null>;
+  register: (email: string, password: string) => Promise<FirebaseUser | null>;
+  logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  
+  // Función para registro completo (Auth + UserData)
+  registerWithProfile: (
+    userData: RegisterUserData,
+    createUserInFirestore: (userId: string) => Promise<void>
+  ) => Promise<FirebaseUser | null>;
 }
 
-const ChatContext = createContext<ChatContextType>({
-    messages: [],
-    isLoading: false,
-    clearMessages: () => {},
-    sendMessage: async () => {},
-});
+// Crear el contexto
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const ChatContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [messages, setMessages] = useState<MessageWithKey[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const clearMessages = () => {
-        setMessages([]);
-    };
-
-    const sendMessage = async (text: string) => {
-        if (!text.trim()) return;
-
-        // Crear mensaje del usuario
-        const newMessage: MessageWithKey = {
-            idts: Date.now().toString(),
-            text,
-            sender: "user",
-            fecha: new Date().toISOString(),
-            emisor: "Usuario",
-            message: text,
-            key: Date.now().toString(),
-        };
-        
-        // IMPORTANTE: Añadir el mensaje del usuario al estado
-        setMessages(prevMessages => [...prevMessages, newMessage]);
-        
-        // Marcar como cargando (para mostrar indicador)
-        setIsLoading(true);
-        
-        try {
-            // Llamada a la API de Gemini
-            const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=AIzaSyCFPEdbkbO_90iTylK8KrsOtQzKSVCxiNE", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ 
-                    contents: [{ 
-                        parts: [{ 
-                            text: `Eres un asistente de soporte de una aplicación de tickets de bus.
-                                  Brinda información acerca de horarios, rutas, políticas de equipaje, proceso de compra y reembolsos.
-                                  Responde de manera concisa y amigable.
-                                  Pregunta: ${text}` 
-                        }] 
-                    }] 
-                }),
-            });
-            
-            // Procesar respuesta
-            const data: APIResponse = await response.json();
-            
-            // Extraer el texto de respuesta
-            const responseText = data?.candidates?.[0]?.content?.parts?.[0]?.text || 
-                                "Lo siento, no pude entender tu pregunta.";
-                                
-            // Crear mensaje de respuesta
-            const botMessage: MessageWithKey = {
-                idts: (Date.now() + 1).toString(),
-                text: responseText,
-                sender: "bot",
-                fecha: new Date().toISOString(),
-                emisor: "AI",
-                message: responseText,
-                key: (Date.now() + 1).toString(),
-            };
-            
-            // Añadir respuesta a los mensajes
-            setMessages(prevMessages => [...prevMessages, botMessage]);
-            
-        } catch (error) {
-            console.error("Error al enviar mensaje:", error);
-            
-            // Mensaje de error
-            const errorMessage: MessageWithKey = {
-                idts: (Date.now() + 1).toString(),
-                text: "Ha ocurrido un error. Por favor, intenta nuevamente más tarde.",
-                sender: "bot",
-                fecha: new Date().toISOString(),
-                emisor: "AI",
-                message: "Error",
-                key: (Date.now() + 1).toString(),
-            };
-            
-            setMessages(prevMessages => [...prevMessages, errorMessage]);
-        } finally {
-            // Fin de carga
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <ChatContext.Provider value={{ messages, isLoading, clearMessages, sendMessage }}>
-            {children}
-        </ChatContext.Provider>
-    );
+// Hook para usar el contexto
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
-export const useChatContext = () => useContext(ChatContext);
+// Proveedor del contexto
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Escuchar cambios en el estado de autenticación
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Iniciar sesión
+  const login = async (email: string, password: string): Promise<FirebaseUser | null> => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      return userCredential.user;
+    } catch (error) {
+      console.error('Error de inicio de sesión:', error);
+      throw error;
+    }
+  };
+
+  // Registrar nuevo usuario (solo autenticación)
+  const register = async (email: string, password: string): Promise<FirebaseUser | null> => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      return userCredential.user;
+    } catch (error) {
+      console.error('Error de registro:', error);
+      throw error;
+    }
+  };
+
+  // Función mejorada para registro completo
+  // Acepta una función callback que se encargará de crear el usuario en Firestore
+  const registerWithProfile = async (
+    userData: RegisterUserData,
+    createUserInFirestore: (userId: string) => Promise<void>
+  ): Promise<FirebaseUser | null> => {
+    try {
+      // 1. Registrar en Authentication
+      const userCredential = await createUserWithEmailAndPassword(
+        auth, 
+        userData.email, 
+        userData.password
+      );
+      
+      const user = userCredential.user;
+      
+      // 2. Crear perfil en Firestore usando el callback
+      try {
+        await createUserInFirestore(user.uid);
+        console.log('Usuario registrado completamente en Auth y Firestore');
+      } catch (firestoreError) {
+        console.error('Error al crear perfil en Firestore:', firestoreError);
+        
+        // Si falla la creación en Firestore, eliminamos el usuario de Auth
+        // para mantener consistencia (evitar usuarios huérfanos)
+        try {
+          await user.delete();
+          console.warn('Usuario eliminado de Auth debido a error en Firestore');
+          throw new Error('No se pudo completar el registro. Error al guardar datos de usuario.');
+        } catch (deleteError) {
+          console.error('Error al eliminar usuario de Auth:', deleteError);
+          throw new Error('Error crítico en registro. Contacte al administrador.');
+        }
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Error en registro completo:', error);
+      throw error;
+    }
+  };
+
+  // Cerrar sesión
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      throw error;
+    }
+  };
+
+  // Restablecer contraseña
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error('Error al restablecer contraseña:', error);
+      throw error;
+    }
+  };
+
+  const value = {
+    currentUser,
+    loading,
+    isAuthenticated: !!currentUser,
+    login,
+    register,
+    registerWithProfile,
+    logout,
+    resetPassword
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export default AuthContext;

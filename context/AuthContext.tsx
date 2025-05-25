@@ -8,7 +8,7 @@ import {
   User as FirebaseUser 
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { auth, db  } from '../utils/FirebaseConfig';
+import { auth, db } from '../utils/FirebaseConfig';
 
 // Definir tipos para los datos de registro
 export interface RegisterUserData {
@@ -16,33 +16,33 @@ export interface RegisterUserData {
   password: string;
   nombre: string;
   apellido: string;
-  role?: 'client' | 'driver' | 'handler' | 'admin';
+  role?: 'client' | 'driver';
   documento?: string;
   telefono?: string;
 }
 
-// Definir tipo para userData
+// Definir tipo para datos de usuario
 export interface UserData {
+  uid?: string;
   nombre: string;
   apellido: string;
   email: string;
-  role?: 'client' | 'driver' | 'handler' | 'admin';
+  role?: 'client' | 'driver';
   documento?: string;
   telefono?: string;
-  // Otros campos que pueda tener tu objeto userData
 }
 
 // Interfaz para el contexto de autenticación
 interface AuthContextType {
   // Estado de autenticación
   currentUser: FirebaseUser | null;
+  userData: UserData | null;
   loading: boolean;
   isAuthenticated: boolean;
-  userData: UserData | null;
   
   // Funciones de autenticación básicas
   login: (email: string, password: string) => Promise<FirebaseUser | null>;
-  loginWithProfile: (email: string, password: string) => Promise<any>;
+  loginWithProfile: (email: string, password: string) => Promise<{user: FirebaseUser, userData: UserData | null}>;
   register: (email: string, password: string) => Promise<FirebaseUser | null>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -52,6 +52,11 @@ interface AuthContextType {
     userData: RegisterUserData,
     createUserInFirestore: (userId: string) => Promise<void>
   ) => Promise<FirebaseUser | null>;
+  
+  // Funciones para verificación de roles
+  isClient: () => boolean;
+  isDriver: () => boolean;
+  getInitialRoute: () => string;
 }
 
 // Crear el contexto
@@ -69,18 +74,30 @@ export const useAuth = () => {
 // Proveedor del contexto
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null); // Solo una declaración
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Función para obtener datos del usuario desde Firestore
+  const fetchUserData = async (userId: string): Promise<UserData | null> => {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', userId));
+      if (userDoc.exists()) {
+        return { uid: userId, ...userDoc.data() } as UserData;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error al obtener datos de usuario:', error);
+      return null;
+    }
+  };
 
   // Escuchar cambios en el estado de autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
-      // Aquí podrías cargar los datos del usuario desde Firestore
+      // Si hay un usuario autenticado, obtener sus datos
       if (user) {
-        // Ejemplo de cómo podrías cargar los datos del usuario 
-        // (deberías implementar fetchUserData según tu estructura)
         try {
           const data = await fetchUserData(user.uid);
           setUserData(data);
@@ -98,26 +115,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return unsubscribe;
   }, []);
 
-  // Función para cargar datos del usuario desde Firestore
-  const fetchUserData = async (userId: string): Promise<UserData | null> => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        return userDoc.data() as UserData;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error al obtener datos de usuario:', error);
-      return null;
-    }
-  };
-
   // Iniciar sesión
   const login = async (email: string, password: string): Promise<FirebaseUser | null> => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Cargar datos del usuario al iniciar sesión
+      // Obtener datos del usuario
       const user = userCredential.user;
       const data = await fetchUserData(user.uid);
       setUserData(data);
@@ -129,22 +132,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Inicio de sesión con carga de perfil (implementación faltante)
-  const loginWithProfile = async (email: string, password: string): Promise<any> => {
+  // Iniciar sesión y devolver también los datos del perfil
+  const loginWithProfile = async (email: string, password: string) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Cargar datos del usuario
-      const userData = await fetchUserData(user.uid);
-      setUserData(userData);
+      // Obtener datos del usuario
+      const data = await fetchUserData(user.uid);
+      setUserData(data);
       
-      return {
-        user,
-        userData
-      };
+      return { user, userData: data };
     } catch (error) {
-      console.error('Error en loginWithProfile:', error);
+      console.error('Error de inicio de sesión con perfil:', error);
       throw error;
     }
   };
@@ -180,8 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await createUserInFirestore(user.uid);
         
-        // Guardar datos del usuario en el estado
+        // Actualizar el estado con los datos del usuario
         setUserData({
+          uid: user.uid,
           nombre: userData.nombre,
           apellido: userData.apellido,
           email: userData.email,
@@ -217,7 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       await signOut(auth);
-      setUserData(null); // Limpiar datos del usuario al cerrar sesión
+      setUserData(null);
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       throw error;
@@ -234,17 +235,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Funciones para verificar roles
+  const isClient = () => userData?.role === 'client';
+  const isDriver = () => userData?.role === 'driver';
+  
+  // Función para obtener la ruta inicial según el rol
+  const getInitialRoute = () => {
+    if (!userData || !userData.role) return '/login';
+    
+    switch(userData.role) {
+      case 'client':
+        return '/client';
+      case 'driver':
+        return '/driver';
+    }
+  };
+
   const value = {
     currentUser,
     userData,
     loading,
     isAuthenticated: !!currentUser,
     login,
-    loginWithProfile, // Añadida la función que faltaba
+    loginWithProfile,
     register,
     registerWithProfile,
     logout,
-    resetPassword
+    resetPassword,
+    isClient,
+    isDriver,
+    getInitialRoute
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
