@@ -2,12 +2,11 @@ import { AuthProvider } from "../context/AuthContext";
 import { Stack } from "expo-router";
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
+import Constants, { UserInterfaceIdiom } from 'expo-constants';
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { UserProvider } from "@/context/UserContext";
 
-// Configurar cómo se muestran las notificaciones
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -16,13 +15,12 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Función para registrar y obtener el token de notificaciones push
-async function registerForPushNotificationsAsync(): Promise<string | null> {
+async function registerForPushNotificationsAsync() {
   let token;
 
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
+    await Notifications.setNotificationChannelAsync('myNotificationChannel', {
+      name: 'A channel is needed for the permissions prompt to appear',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#FF231F7C',
@@ -37,53 +35,59 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
       finalStatus = status;
     }
     if (finalStatus !== 'granted') {
-      console.warn('❌ Permiso de notificaciones denegado');
+      console.warn('Failed to get push token for push notification!');
+      alert('Failed to get push token for push notification!');
       return null;
     }
-
+    
+    // EAS projectId is used here.
     try {
       const projectId =
         Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
-
+      
       if (!projectId) {
-        console.error('❌ Project ID no encontrado en app.json');
+        console.error('Project ID not found - check your app.json or app.config.js');
         return null;
       }
-
-      const tokenResponse = await Notifications.getExpoPushTokenAsync({ projectId });
-      return tokenResponse.data;
+      
+      const tokenResponse = await Notifications.getExpoPushTokenAsync({projectId,});  
+      token = tokenResponse.data;
+      console.log('Push notification token:', token);
+      return token;
     } catch (e) {
-      console.error('❌ Error al obtener el token de notificación:', e);
+      console.error('Error getting push token:', e);
       return null;
     }
   } else {
-    alert('Debes usar un dispositivo físico para notificaciones push');
-    return null;
+    console.warn('Must use physical device for Push Notifications');
+    alert('Must use physical device for Push Notifications');
   }
+  return token;
 }
 
 export default function RootLayout() {
-  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
-  const notificationListener = useRef<Notifications.Subscription>();
-  const responseListener = useRef<Notifications.Subscription>();
+  const [expoPushToken, setExpoPushToken] = useState('');
+  const [channels, setChannels] = useState<Notifications.NotificationChannel[]>([]);
+  const [notification, setNotification] = useState<Notifications.Notification | undefined>(
+    undefined
+  );
+  const notificationListener = useRef<Notifications.EventSubscription>();
+  const responseListener = useRef<Notifications.EventSubscription>();
 
   useEffect(() => {
-    // Registro de token
     registerForPushNotificationsAsync().then(token => {
-      if (token) {
-        setExpoPushToken(token);
-      }
+      if (token) setExpoPushToken(token);
     });
 
     // Listener para notificaciones recibidas
-    /*notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
-      console.log("📨 Notificación recibida:", notification);
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      console.log('🔔 Notificación recibida:', notification);
     });
 
-    // Listener para respuestas a notificaciones
+    // Listener para respuestas del usuario a una notificación
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log("📬 Respuesta a notificación:", response);
-    });*/
+      console.log('👉 Usuario tocó la notificación:', response);
+    });
 
     return () => {
       if (notificationListener.current) {
@@ -95,15 +99,18 @@ export default function RootLayout() {
     };
   }, []);
 
+
   return (
     <AuthProvider>
       <UserProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="auth" />
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="index" />
-        </Stack>
+      <Stack
+        screenOptions={{ headerShown: false }} 
+      >
+        <Stack.Screen name="auth"/>
+        <Stack.Screen name="(app)"/>
+        <Stack.Screen name="index"/>
+      </Stack>
       </UserProvider>
     </AuthProvider>
-  );
+  )
 }
