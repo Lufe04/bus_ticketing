@@ -124,54 +124,65 @@ export function RoutesProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Get routes for the current user
-  const getUserRoutes = useCallback(async (): Promise<void> => {
-    if (!userData?.id) {
-      setUserRoutes([]);
-      return;
-    }
+  // Función modificada que solo filtra sin ordenar
+const getUserRoutes = useCallback(async (): Promise<void> => {
+  if (!userData?.id) {
+    setUserRoutes([]);
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const q = query(
-        collection(db, 'client_routes'),
-        where('usuario', '==', userData.id),
-        orderBy('createdAt', 'desc')
-      );
+  setLoading(true);
+  try {
+    // Solo usamos el filtro "where" sin el "orderBy"
+    const q = query(
+      collection(db, 'client_routes'),
+      where('usuario', '==', userData.id)
+      // Ya no usamos orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const routesData: ClientRoute[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      const escaneado = data.escaneado || false;
+      const estado = escaneado ? 'inactivo' : determinarEstadoRuta(data.fecha_salida || '');
       
-      const querySnapshot = await getDocs(q);
-      const routesData: ClientRoute[] = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const escaneado = data.escaneado || false;
-        const estado = escaneado ? 'inactivo' : determinarEstadoRuta(data.fecha_salida || '');
-        
-        routesData.push({
-          id: doc.id,
-          cantidad: data.cantidad || '',
-          desde: data.desde || '',
-          hasta: data.hasta || '',
-          fecha_regreso: data.fecha_regreso || '',
-          fecha_salida: data.fecha_salida || '',
-          usuario: data.usuario || '',
-          createdAt: data.createdAt || '',
-          asiento: data.asiento || '',
-          estado: data.estado || estado,
-          hora: data.hora || '',
-          boarding_id: data.boarding_id || '',
-          viaje_id: data.viaje_id || '',
-          escaneado: escaneado
-        });
+      routesData.push({
+        id: doc.id,
+        cantidad: data.cantidad || '',
+        desde: data.desde || '',
+        hasta: data.hasta || '',
+        fecha_regreso: data.fecha_regreso || '',
+        fecha_salida: data.fecha_salida || '',
+        usuario: data.usuario || '',
+        createdAt: data.createdAt || '',
+        asiento: data.asiento || '',
+        estado: data.estado || estado,
+        hora: data.hora || '',
+        boarding_id: data.boarding_id || '',
+        viaje_id: data.viaje_id || '',
+        escaneado: escaneado
       });
-      
-      setUserRoutes(routesData);
-    } catch (err) {
-      console.error('Error getting user routes:', err);
-      setError('Error al obtener tus rutas');
-    } finally {
-      setLoading(false);
-    }
-  }, [userData?.id]);
+    });
+    
+    // Si quieres mantener algún tipo de orden, puedes ordenar los datos en memoria
+    // pero esto es opcional y no afecta a Firestore
+    /* 
+    routesData.sort((a, b) => {
+      // Ordenar por algún criterio si lo deseas
+      return 0;
+    });
+    */
+    
+    setUserRoutes(routesData);
+  } catch (err) {
+    console.error('Error getting user routes:', err);
+    setError('Error al obtener tus rutas');
+  } finally {
+    setLoading(false);
+  }
+}, [userData?.id]);
 
   // Add a new route
   const addRoute = async (route: Omit<ClientRoute, 'id'>): Promise<ClientRoute | null> => {

@@ -6,11 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 // Obtener dimensiones del dispositivo para diseño responsive
 const { width, height } = Dimensions.get('window');
 
-// Paleta de colores
+// Paleta de colores actualizada para consistencia
 const COLORS = {
-  skyBlue: '#20ADF5',
-  midnightBlue: '#1A2E46',
+  primaryBlue: '#131A2E', // Color azul oscuro principal
+  skyBlue: '#20ADF5',     // Color azul claro para acentos
   gray: '#989898',
+  lightGray: '#F2F4F5',
   white: '#FFFFFF'
 };
 
@@ -82,19 +83,19 @@ export default function Index() {
     
     switch(iconName) {
       case 'bus':
-        iconComponent = <Ionicons name="bus" size={100} color="#000000" />;
+        iconComponent = <Ionicons name="bus" size={100} color={COLORS.white} />;
         break;
       case 'ticket':
-        iconComponent = <Ionicons name="ticket" size={100} color="#000000" />;
+        iconComponent = <Ionicons name="ticket" size={100} color={COLORS.white} />;
         break;
       case 'location':
-        iconComponent = <Ionicons name="location" size={100} color="#000000" />;
+        iconComponent = <Ionicons name="location" size={100} color={COLORS.white} />;
         break;
       case 'map':
-        iconComponent = <Ionicons name="map" size={100} color="#000000" />;
+        iconComponent = <Ionicons name="map" size={100} color={COLORS.white} />;
         break;
       default:
-        iconComponent = <Ionicons name="help-circle" size={100} color="#000000" />;
+        iconComponent = <Ionicons name="help-circle" size={100} color={COLORS.white} />;
     }
     
     return iconComponent;
@@ -102,10 +103,10 @@ export default function Index() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
       <View style={styles.slideContainer}>
-        {/* Top blue section with icon */}
+        {/* Top blue section with icon - cambiado a azul oscuro */}
         <View style={styles.topSection}>
           {renderIcon()}
         </View>
@@ -149,7 +150,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topSection: {
-    backgroundColor: COLORS.skyBlue,
+    backgroundColor: COLORS.primaryBlue, // Cambiado a azul oscuro para consistencia
     height: '45%',
     justifyContent: 'center',
     alignItems: 'center',
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
-    color: COLORS.midnightBlue,
+    color: COLORS.primaryBlue, // Cambiado a primario para consistencia
   },
   description: {
     fontSize: 16,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   nextButton: {
-    backgroundColor: COLORS.skyBlue,
+    backgroundColor: COLORS.primaryBlue, // Cambiado a azul oscuro para consistencia
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 25,
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   getStartedButton: {
-    backgroundColor: COLORS.skyBlue,
+    backgroundColor: COLORS.primaryBlue, // Cambiado a azul oscuro para consistencia
     paddingVertical: 12,
     paddingHorizontal: 40,
     borderRadius: 25,

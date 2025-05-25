@@ -187,6 +187,20 @@ export default function TabLayout() {
         ),
       }}
     />
+    {/* Ocultar selectScreen y ticketScreen del tab bar */}
+      <Tabs.Screen
+        name="selectScreen"
+        options={{
+          href: null, // Esto oculta la pestaña del tab bar
+        }}
+      />
+      
+      <Tabs.Screen
+        name="ticketScreen"
+        options={{
+          href: null, // Esto oculta la pestaña del tab bar
+        }}
+      />
   </Tabs>
 );
 }
