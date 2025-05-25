@@ -1,17 +1,83 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 import { useRouter } from 'expo-router';
-import { useBoarding } from '../../../context/BoardingContext';
 import { useUser } from '../../../context/UserContext';
+import { db } from '../../../utils/FirebaseConfig';
+import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import LottieView from 'lottie-react-native';
 
 export default function TripSummaryScreen() {
   const router = useRouter();
   const { userData } = useUser();
-  const { boardings } = useBoarding();
+  const [boarding, setBoarding] = useState<any>(null);
+  const [horaSalida, setHoraSalida] = useState('');
+  const [horaLlegada, setHoraLlegada] = useState('');
+  const [duracion, setDuracion] = useState('');
+  const [pasajerosCount, setPasajerosCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const boarding = boardings.find(b => b.estado === 'finalizado');
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      query(collection(db, 'boarding'), where('estado', '==', 'finalizado')),
+      async snapshot => {
+        type BoardingData = {
+        id: string;
+        paradas: string[];
+        desde: string;
+        hasta: string;
+        hora_fin: any;
+      };
+
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as BoardingData[];
+      const finalizado = docs[0];
+
+        if (!finalizado) {
+          setBoarding(null);
+          return;
+        }
+        setBoarding(finalizado);
+
+        // Historial
+        const historialSnap = await getDocs(collection(db, `boarding/${finalizado.id}/historial_paradas`));
+        const historial = historialSnap.docs.map(d => d.data());
+
+        const salida = historial.find(p => p.nombre === finalizado.paradas[0])?.hora_llegada;
+        const llegada = historial.find(p => p.nombre === finalizado.paradas.at(-1))?.hora_llegada;
+
+        if (salida && llegada) {
+          const parseTime = (h: string) => {
+            const [hr, min] = h.split(':').map(Number);
+            return new Date(0, 0, 0, hr, min);
+          };
+          const start = parseTime(salida);
+          const end = parseTime(llegada);
+          const mins = Math.floor((+end - +start) / 60000);
+          const duracionStr = `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`;
+
+          setHoraSalida(salida);
+          setHoraLlegada(llegada);
+          setDuracion(duracionStr);
+        }
+
+        // Pasajeros escaneados
+        const pasajerosSnap = await getDocs(collection(db, `boarding/${finalizado.id}/pasajeros`));
+        const escaneados = pasajerosSnap.docs.filter(d => d.data().escaneado === true).length;
+        setPasajerosCount(escaneados);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#08173B" />
+      </View>
+    );
+  }
 
   if (!boarding) {
     return (
@@ -21,45 +87,26 @@ export default function TripSummaryScreen() {
     );
   }
 
-  const horaSalida = boarding.hora_inicio.toDate().toLocaleTimeString('es-CO', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  const horaLlegada = boarding.hora_fin.toDate().toLocaleTimeString('es-CO', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  const fecha = boarding.hora_fin.toDate().toLocaleDateString('es-CO', {
+  const fecha = boarding.hora_fin?.toDate().toLocaleDateString('es-CO', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
 
-  const horaInicio = boarding.hora_inicio.toDate().getTime();
-  const horaFin = boarding.hora_fin.toDate().getTime();
-  const duracionMs = horaFin - horaInicio;
-  const duracionMin = Math.floor(duracionMs / 60000);
-  const duracionStr = `${Math.floor(duracionMin / 60)}:${String(duracionMin % 60).padStart(2, '0')}`;
-
-
-  const pasajeros = boarding.pasajeros_lista?.length ?? 0;
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Resumen</Text>
-        </View>
+        <Text style={styles.headerTitle}>Resumen</Text>
         <View style={styles.userCircle}>
           <Text style={styles.userInitial}>{userData?.nombre?.[0]?.toUpperCase() || 'U'}</Text>
         </View>
       </View>
 
       <View style={styles.content}>
-        <DotLottieReact
-          src="https://lottie.host/2419a54d-fadf-49bb-ac69-d5f412f86701/rUjO7jDiHj.lottie"
+        <LottieView
+          source={require('../../../assets/lottie/success.json')}
+          autoPlay
           loop={false}
-          autoplay
           style={{ width: 150, height: 150 }}
         />
         <Text style={styles.successText}>Viaje Finalizado</Text>
@@ -77,8 +124,8 @@ export default function TripSummaryScreen() {
         <View style={styles.summaryCard}>
           <View style={styles.rowBetween}><Text style={styles.label}>Hora de Salida</Text><Text style={styles.value}>{horaSalida}</Text></View>
           <View style={styles.rowBetween}><Text style={styles.label}>Hora de Llegada</Text><Text style={styles.value}>{horaLlegada}</Text></View>
-          <View style={styles.rowBetween}><Text style={styles.label}>Duración Total</Text><Text style={styles.value}>{duracionStr}</Text></View>
-          <View style={styles.rowBetween}><Text style={styles.label}>Número de Pasajeros</Text><Text style={styles.value}>{pasajeros}</Text></View>
+          <View style={styles.rowBetween}><Text style={styles.label}>Duración Total</Text><Text style={styles.value}>{duracion}</Text></View>
+          <View style={styles.rowBetween}><Text style={styles.label}>Número de Pasajeros</Text><Text style={styles.value}>{pasajerosCount}</Text></View>
         </View>
       </View>
 
@@ -92,7 +139,6 @@ export default function TripSummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  // mismos estilos que ya tienes definidos…
   container: { flex: 1, backgroundColor: '#F7F8FA' },
   header: {
     backgroundColor: '#08173B',
@@ -103,7 +149,6 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
   userCircle: {
     backgroundColor: '#FFFFFF',

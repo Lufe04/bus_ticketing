@@ -6,7 +6,7 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import { getDistance } from 'geolib';
-import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../../utils/FirebaseConfig';
 import { useUser } from '../../../context/UserContext';
 import { useBoarding } from '../../../context/BoardingContext';
@@ -27,21 +27,33 @@ export default function RouteInProgressScreen() {
   const router = useRouter();
   const { userData } = useUser();
   const { getCurrentBoarding } = useBoarding();
-  const boarding = getCurrentBoarding();
+  const initialBoarding = getCurrentBoarding();
 
   const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [paradaCoords, setParadaCoords] = useState<{ lat: number; lon: number; label: string }[]>([]);
   const [canStartTrip, setCanStartTrip] = useState(false);
+  const [canMarkStop, setCanMarkStop] = useState(false);
+  const [canEndTrip, setCanEndTrip] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalAction, setModalAction] = useState<'start' | 'arrival' | 'end'>('start');
   const [selectedStopName, setSelectedStopName] = useState('');
+  const [boarding, setBoarding] = useState(initialBoarding);
+  const [notificacionProgramada, setNotificacionProgramada] = useState(false);
 
-  // Habilitar botones
-  const [canMarkStop, setCanMarkStop] = useState(false);
-  const [canEndTrip, setCanEndTrip] = useState(false);
+  // Listener al documento del viaje
+  useEffect(() => {
+    if (!initialBoarding?.id) return;
+    const boardingRef = doc(db, 'boarding', initialBoarding.id);
+    const unsubscribe = onSnapshot(boardingRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setBoarding({ id: docSnap.id, ...docSnap.data() } as any);
+      }
+    });
+    return unsubscribe;
+  }, [initialBoarding?.id]);
 
-  // Obtener ubicación
+  // Obtener ubicación actual
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -52,7 +64,7 @@ export default function RouteInProgressScreen() {
     })();
   }, []);
 
-  // Coordenadas de paradas
+  // Obtener coordenadas de las paradas
   useEffect(() => {
     const fetchAllStopCoordinates = async () => {
       if (!boarding?.paradas) return;
@@ -66,17 +78,121 @@ export default function RouteInProgressScreen() {
     fetchAllStopCoordinates();
   }, [boarding?.paradas]);
 
-  // Simulación de ruta
+  // Verificar cercanía
+  useEffect(() => {
+    if (!location || paradaCoords.length === 0 || !boarding) return;
+    const currentCoords = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+    if (boarding.estado === 'programado') {
+      const firstStop = paradaCoords[0];
+      const distToFirst = getDistance(currentCoords, { latitude: firstStop.lat, longitude: firstStop.lon });
+      setCanStartTrip(distToFirst <= DISTANCIA_MAXIMA_METROS);
+    }
+  }, [location, boarding?.estado, paradaCoords]);
+
+  // Habilitar botones cuando esté en curso
+  useEffect(() => {
+    if (boarding?.estado === 'en_curso') {
+      setCanMarkStop(true);
+      setCanEndTrip(true);
+    }
+  }, [boarding?.estado]);
+
+  // Acción confirmada (inicio, parada, finalización)
+  const handleConfirmAction = async () => {
+    if (!boarding?.id || !selectedStopName) return;
+
+    const now = new Date();
+    const horaLlegada = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    const boardingRef = doc(db, 'boarding', boarding.id);
+    const historialRef = collection(db, `boarding/${boarding.id}/historial_paradas`);
+
+    try {
+      let newEstado = boarding.estado;
+      if (modalAction === 'start') newEstado = 'en_curso';
+      if (modalAction === 'end') newEstado = 'finalizado';
+
+      await updateDoc(boardingRef, {
+        estado: newEstado,
+        parada_actual: selectedStopName,
+        hora_llegada: horaLlegada,
+      });
+
+      await addDoc(historialRef, {
+        nombre: selectedStopName,
+        hora_llegada: horaLlegada,
+        timestamp: now,
+      });
+
+      if (modalAction === 'end') {
+        console.log('📢 Notificación: Califica tu viaje en 3 horas (simulada en 2 seg)');
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Recuerda calificar tu viaje',
+            body: 'Tu opinión es importante para mejorar el servicio',
+            sound: 'default',
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: 2, // en producción: 3 * 60 * 60
+          },
+        });
+
+        router.push('/driver/summary');
+      }
+
+    } catch (err) {
+      console.error('❌ Error al actualizar el viaje:', err);
+    }
+
+    setModalVisible(false);
+  };
+
+  useEffect(() => {
+    if (!boarding?.hora_inicio || boarding.estado !== 'programado'|| notificacionProgramada) return;
+
+    const now = Date.now();
+    const inicio = boarding.hora_inicio.toDate().getTime();
+    const diff = inicio - now;
+
+    if (diff > 0 && diff <= 5 * 60 * 1000) {
+      console.log('🕐 Notificación: El viaje está por comenzar en 5 minutos');
+
+      Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Tu viaje está por comenzar 🚍',
+          body: 'No olvides registrarte con el conductor',
+          sound: 'default',
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          seconds: 2, // solo para pruebas. Usa 300 en producción
+        },
+      });
+      setNotificacionProgramada(true);
+    }
+  }, [boarding, notificacionProgramada]);
+
+
+
+  // Simular movimiento del conductor 
   useEffect(() => {
     const simulateDriverRoute = async () => {
       if (paradaCoords.length === 0 || !mapRef.current) return;
+
       for (const stop of paradaCoords) {
-        mapRef.current.animateToRegion({
-          latitude: stop.lat,
-          longitude: stop.lon,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }, 3000);
+        mapRef.current.animateToRegion(
+          {
+            latitude: stop.lat,
+            longitude: stop.lon,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          3000
+        );
         await new Promise(res => setTimeout(res, 3000));
         setLocation({
           coords: {
@@ -94,97 +210,8 @@ export default function RouteInProgressScreen() {
         await new Promise(res => setTimeout(res, 10000));
       }
     };
-    simulateDriverRoute();
+      simulateDriverRoute();
   }, [paradaCoords]);
-
-  // Verificar cercanía a primera parada
-  useEffect(() => {
-    if (!location || paradaCoords.length === 0 || !boarding) return;
-    const currentCoords = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    };
-    if (boarding.estado === 'programado') {
-      const firstStop = paradaCoords[0];
-      const distToFirst = getDistance(currentCoords, { latitude: firstStop.lat, longitude: firstStop.lon });
-      setCanStartTrip(distToFirst <= DISTANCIA_MAXIMA_METROS);
-    }
-  }, [location, boarding?.estado, paradaCoords]);
-
-  // Habilitar botones en curso
-  useEffect(() => {
-    if (boarding?.estado === 'en_curso') {
-      setCanMarkStop(true);
-      setCanEndTrip(true);
-    }
-  }, [boarding?.estado]);
-
-  // Notificación 5 min antes
-  useEffect(() => {
-    if (!boarding) return;
-    const now = new Date().getTime();
-    const inicio = boarding.hora_inicio.toDate().getTime();
-    const diff = inicio - now;
-    if (diff > 0 && diff <= 5 * 60 * 1000) {
-      Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Tu viaje está por comenzar 🚍',
-          body: 'No olvides registrarte con el conductor',
-          sound: 'default',
-        },
-        trigger: {
-            type: 'timeInterval',
-            seconds: 5,
-            repeats: false,
-          } as Notifications.TimeIntervalTriggerInput
-      });
-    }
-  }, [boarding]);
-
-  // Confirmar acción
-  const handleConfirmAction = async () => {
-    if (!boarding?.id || !selectedStopName) return;
-
-    const now = new Date();
-    const horaLlegada = now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-    const boardingRef = doc(db, 'boarding', boarding.id);
-    const historialRef = collection(db, `boarding/${boarding.id}/historial_paradas`);
-
-    try {
-      const newEstado = modalAction === 'end' ? 'finalizado' : 'en_curso';
-
-      await updateDoc(boardingRef, {
-        estado: newEstado,
-        parada_actual: selectedStopName,
-        hora_llegada: horaLlegada,
-      });
-
-      await addDoc(historialRef, {
-        nombre: selectedStopName,
-        hora_llegada: horaLlegada,
-        timestamp: now,
-      });
-
-      if (modalAction === 'end') {
-        await Notifications.scheduleNotificationAsync({
-          content: {
-            title: 'Recuerda calificar tu viaje',
-            body: 'Tu opinión es importante para mejorar el servicio',
-            sound: 'default',
-          },
-          trigger: {
-            type: 'date',
-            date: new Date(Date.now() + 3 * 60 * 60 * 1000),
-          } as Notifications.DateTriggerInput
-        });
-        router.push('/driver/summary');
-      }
-    } catch (err) {
-      console.error('❌ Error al actualizar el viaje:', err);
-    }
-
-    setModalVisible(false);
-  };
 
   return (
     <View style={styles.container}>
