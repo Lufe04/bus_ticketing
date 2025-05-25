@@ -6,7 +6,8 @@ import Constants, { UserInterfaceIdiom } from 'expo-constants';
 import { Platform } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { UserProvider } from "@/context/UserContext";
-import { ChatContextProvider } from "@/context/chatContext";
+import { ChatContextProvider } from "@/context/ChatContext";
+import { BoardingProvider } from "@/context/BoardingContext";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -120,6 +121,7 @@ export default function RootLayout() {
     <AuthProvider>
       <UserProvider>
         <ChatContextProvider>
+          <BoardingProvider>
       <Stack
         screenOptions={{ headerShown: false }} 
       >
@@ -127,6 +129,7 @@ export default function RootLayout() {
         <Stack.Screen name="(app)"/>
         <Stack.Screen name="index"/>
       </Stack>
+      </BoardingProvider>
       </ChatContextProvider>
       </UserProvider>
     </AuthProvider>

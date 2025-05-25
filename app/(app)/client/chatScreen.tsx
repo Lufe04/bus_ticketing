@@ -13,7 +13,7 @@ import {
     StatusBar
 } from "react-native";
 import { useRouter, useNavigation } from "expo-router";
-import { useChatContext } from "@/context/chatContext";
+import { useChatContext } from "@/context/ChatContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

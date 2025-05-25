@@ -48,6 +48,7 @@ interface BoardingContextType {
   boardings: Boarding[];
   loading: boolean;
   error: string | null;
+  searchBoardings: (from: string, to: string, date: Date) => Promise<Boarding[]>;
   getBoardings: () => Promise<void>;
   addBoarding: (data: Omit<Boarding, 'id'>) => Promise<void>;
   getCurrentBoarding: () => Boarding | null;
@@ -77,6 +78,80 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const [selectedPassenger, setSelectedPassenger] = useState<Passenger | null>(null);
 
   const { userData } = useUser();
+
+// Para el archivo BoardingContext.tsx
+const searchBoardings = async (from: string, to: string, date: Date): Promise<Boarding[]> => {
+  setLoading(true);
+  try {
+    // SOLUCIÓN: Limpiar espacios en blanco al inicio y final
+    const cleanFrom = from.trim();
+    const cleanTo = to.trim();
+    
+    console.log(`🔍 Buscando viajes de ${cleanFrom} a ${cleanTo} el ${date.toLocaleDateString()}`);
+    
+    // Obtener todos los boardings
+    const boardingRef = collection(db, 'boarding');
+    const snapshot = await getDocs(boardingRef);
+    
+    const results: Boarding[] = [];
+    
+    // Normalizar la fecha de búsqueda para comparación (solo fecha, sin tiempo)
+    const searchDateStr = date.toDateString();
+    
+    snapshot.docs.forEach(doc => {
+      const data = doc.data() as Boarding;
+      
+      // Convertir Timestamp a Date si es necesario
+      const startTime = data.hora_inicio?.toDate ? 
+                        data.hora_inicio.toDate() : 
+                        data.hora_inicio.toDate();
+      
+      // Comparar solo la fecha (sin tiempo)
+      const tripDateStr = startTime.toDateString();
+      
+      // COINCIDENCIA EXACTA - con datos limpios
+      const fromMatches = data.desde.trim() === cleanFrom;
+      const toMatches = data.hasta.trim() === cleanTo;
+      
+      console.log(`🔍 Comparando: BD(${data.desde.trim()} → ${data.hasta.trim()}) vs Búsqueda(${cleanFrom} → ${cleanTo})`);
+      console.log(`📅 Fecha BD: ${tripDateStr} vs Búsqueda: ${searchDateStr}`);
+      
+      // Verificar si coinciden los criterios
+      if (
+        tripDateStr === searchDateStr &&
+        fromMatches &&
+        toMatches &&
+        data.estado !== 'finalizado'
+      ) {
+        console.log(`✅ Viaje encontrado: ${data.desde} → ${data.hasta}`);
+        results.push({
+          id: doc.id,
+          ...data
+        });
+      }
+    });
+    
+    // Ordenar por hora de inicio
+    results.sort((a, b) => {
+      const timeA = a.hora_inicio && typeof a.hora_inicio.toDate === 'function'
+        ? a.hora_inicio.toDate()
+        : new Date(a.hora_inicio as unknown as string);
+      const timeB = b.hora_inicio && typeof b.hora_inicio.toDate === 'function'
+        ? b.hora_inicio.toDate()
+        : new Date(b.hora_inicio as unknown as string);
+      return timeA.getTime() - timeB.getTime();
+    });
+    
+    console.log(`✅ Se encontraron ${results.length} viajes que coinciden con los criterios`);
+    return results;
+  } catch (err) {
+    console.error('❌ Error buscando viajes:', err);
+    setError('Error al buscar viajes disponibles');
+    return [];
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getBoardings = async () => {
     setLoading(true);
@@ -248,7 +323,8 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         selectedPassenger, // ✅ NUEVO
         setSelectedPassenger,
         refreshBoarding, // Añadido para refrescar el boarding actual
-        getActiveBoarding, // Añadido para obtener el boarding activo
+        getActiveBoarding, 
+        searchBoardings,
       }}
     >
       {children}

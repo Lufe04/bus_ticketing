@@ -1,14 +1,26 @@
 import React, { useState } from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView,TextInput,Platform,StatusBar,
+import {
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  SafeAreaView, 
+  ScrollView,
+  TextInput,
+  Platform,
+  StatusBar,
   Alert,
   Modal,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../../context/AuthContext';
 import { useUser } from '../../../context/UserContext';
+// Eliminamos la importación de DateTimePicker que causa problemas
+// import DateTimePicker from '@react-native-community/datetimepicker';
 
 // Paleta de colores
 const COLORS = {
@@ -33,10 +45,12 @@ export default function ClientHome() {
   const [to, setTo] = useState('CSA');
   const [toDetails, setToDetails] = useState('Ciudad, Estación o Aeropuerto');
   const [departureDate, setDepartureDate] = useState('28 abr 2025');
-  const [returnDate, setReturnDate] = useState<string | null>(null);
   const [passengerCount, setPassengerCount] = useState(1);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   const [profilePopupVisible, setProfilePopupVisible] = useState(false);
+  // Reemplazamos showDatePicker por el estado de visibilidad del modal
+  const [datePickerModalVisible, setDatePickerModalVisible] = useState(false);
+  const [departureDateObj, setDepartureDateObj] = useState(new Date(2025, 3, 28)); // Para el DatePicker
   
   // Función para intercambiar origen y destino
   const swapLocations = () => {
@@ -49,25 +63,56 @@ export default function ClientHome() {
     setToDetails(tempFromDetails);
   };
 
-  // Mostrar selectores de fecha
-  const showDatePicker = (type: 'departure' | 'return') => {
-    Alert.alert(
-      'Seleccionar fecha',
-      `Esta funcionalidad permitiría elegir la fecha de ${type === 'departure' ? 'salida' : 'regreso'}.`,
-      [{ text: 'Entendido', style: 'default' }]
-    );
+  // Nueva función para abrir el modal de fecha
+  const handleOpenDatePicker = () => {
+    setDatePickerModalVisible(true);
+    console.log("Abriendo selector de fecha...");
   };
 
-  // Navegación a otras pantallas
+  // Función para seleccionar una fecha en el calendario personalizado
+  const handleSelectDate = (date: Date) => {
+    setDepartureDateObj(date);
+    
+    // Formatear la fecha para mostrarla
+    const day = date.getDate();
+    const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const month = monthNames[date.getMonth()];
+    const year = date.getFullYear();
+    
+    setDepartureDate(`${day} ${month} ${year}`);
+    setDatePickerModalVisible(false);
+    console.log(`Fecha seleccionada: ${day} ${month} ${year}`);
+  };
+
   const navigateToSearch = () => {
-    router.push('/client/selectScreen');
+  // Asegurar que tenemos un objeto Date válido
+  // Enviamos la fecha como string ISO, pero sin tiempo
+  const dateObj = departureDateObj;
+  dateObj.setHours(0, 0, 0, 0); // Resetear la hora a medianoche
+  
+  // Parámetros de búsqueda para enviar
+  const searchParams = {
+    from: from,
+    fromDetails: fromDetails,
+    to: to,
+    toDetails: toDetails,
+    date: dateObj.toISOString(), // Formato ISO sin tiempo
+    passengers: passengerCount.toString()
   };
+  
+  // Navegar a la pantalla de selección con los parámetros
+  router.push({
+    pathname: '/client/selectScreen',
+    params: searchParams
+  });
+};
 
+  // Funciones de navegación y logout - sin cambios
   const navigateToTickets = () => {
     router.push('/client/ticketScreen');
   };
 
-   const handleLogout = async () => {
+  const handleLogout = async () => {
     try {
       await logout();
       router.replace('/auth');
@@ -81,8 +126,9 @@ export default function ClientHome() {
   // Primera letra del usuario para el avatar
   const userInitial = userName ? userName.charAt(0).toUpperCase() : 'U';
 
-  // Modal del QR
+  // Modal del QR - sin cambios
   const renderQrModal = () => {
+    // ...código existente sin cambios
     return (
       <Modal
         animationType="fade"
@@ -121,7 +167,9 @@ export default function ClientHome() {
     );
   };
 
+  // Modal del perfil - sin cambios
   const renderProfilePopup = () => {
+    // ...código existente sin cambios
     return (
       <Modal
         animationType="fade"
@@ -154,6 +202,70 @@ export default function ClientHome() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+    );
+  };
+
+  // Nuevo componente: Modal del selector de fecha personalizado
+  const renderDatePickerModal = () => {
+    // Crear un array de fechas para 30 días desde hoy
+    const today = new Date();
+    const dateOptions = Array.from({ length: 30 }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      return date;
+    });
+
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={datePickerModalVisible}
+        onRequestClose={() => setDatePickerModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContainer, { width: '90%', maxHeight: 400 }]}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Seleccionar fecha</Text>
+              <TouchableOpacity onPress={() => setDatePickerModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.primaryBlue} />
+              </TouchableOpacity>
+            </View>
+            
+            <FlatList
+              data={dateOptions}
+              keyExtractor={(item) => item.toISOString()}
+              renderItem={({ item }) => {
+                // Formatear la fecha para mostrarla
+                const day = item.getDate();
+                const dayName = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][item.getDay()];
+                const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+                const month = monthNames[item.getMonth()];
+                const year = item.getFullYear();
+                const isToday = day === today.getDate() && 
+                                item.getMonth() === today.getMonth() && 
+                                item.getFullYear() === today.getFullYear();
+                
+                return (
+                  <TouchableOpacity 
+                    style={[
+                      styles.dateOption,
+                      isToday && styles.todayOption
+                    ]}
+                    onPress={() => handleSelectDate(item)}
+                  >
+                    <View style={styles.dateOptionContent}>
+                      <Text style={styles.dayName}>{dayName}</Text>
+                      <Text style={styles.dateOptionDay}>{day}</Text>
+                    </View>
+                    <Text style={styles.dateOptionMonth}>{`${month} ${year}`}</Text>
+                  </TouchableOpacity>
+                );
+              }}
+              showsVerticalScrollIndicator={false}
+            />
+          </View>
+        </View>
       </Modal>
     );
   };
@@ -193,19 +305,19 @@ export default function ClientHome() {
       <StatusBar barStyle="light-content" backgroundColor={COLORS.primaryBlue} />
       
       {/* Header con fondo azul */}
-    <View style={styles.header}>
-      <View>
-        <Text style={styles.greeting}>Hola, {userName}</Text>
-        <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hola, {userName}</Text>
+          <Text style={styles.subGreeting}>¿Listo para tu próximo viaje?</Text>
+        </View>
+        {/* Hacer el avatar clickeable */}
+        <TouchableOpacity 
+          style={styles.avatarContainer}
+          onPress={() => setProfilePopupVisible(true)}
+        >
+          <Text style={styles.avatarText}>{userInitial}</Text>
+        </TouchableOpacity>
       </View>
-      {/* Hacer el avatar clickeable */}
-      <TouchableOpacity 
-        style={styles.avatarContainer}
-        onPress={() => setProfilePopupVisible(true)}
-      >
-        <Text style={styles.avatarText}>{userInitial}</Text>
-      </TouchableOpacity>
-    </View>
       
       {/* Contenido principal con fondo blanco y bordes redondeados */}
       <View style={styles.mainContent}>
@@ -254,11 +366,13 @@ export default function ClientHome() {
               </View>
             </View>
             
-            {/* Fechas */}
+            {/* Nueva fila para fecha y pasajeros */}
             <View style={styles.datesRow}>
+              {/* Fecha de salida */}
               <TouchableOpacity 
                 style={styles.dateField} 
-                onPress={() => showDatePicker('departure')}
+                onPress={handleOpenDatePicker}
+                activeOpacity={0.7}
               >
                 <Text style={styles.fieldLabel}>Fecha de salida</Text>
                 <View style={styles.dateContent}>
@@ -267,23 +381,8 @@ export default function ClientHome() {
                 </View>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.dateField, { marginRight: 0 }]} 
-                onPress={() => showDatePicker('return')}
-              >
-                <Text style={styles.fieldLabel}>Fecha de regreso</Text>
-                <View style={styles.dateContent}>
-                  <Ionicons name="calendar-outline" size={18} color={COLORS.gray} />
-                  <Text style={styles.dateText}>
-                    {returnDate || 'Opcional'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Pasajeros */}
-            <View style={styles.passengersContainer}>
-              <View style={styles.passengersContent}>
+              {/* Pasajeros */}
+              <View style={styles.passengerField}>
                 <Text style={styles.fieldLabel}>Pasajeros</Text>
                 <View style={styles.passengerInputContainer}>
                   <Ionicons name="people-outline" size={18} color={COLORS.gray} />
@@ -292,7 +391,7 @@ export default function ClientHome() {
                     value={String(passengerCount)}
                     onChangeText={(text) => {
                       const num = parseInt(text.replace(/[^0-9]/g, ''));
-                      setPassengerCount(isNaN(num) ? 1 : num);
+                      setPassengerCount(isNaN(num) ? 1 : Math.max(1, Math.min(num, 99)));
                     }}
                     keyboardType="numeric"
                     maxLength={2}
@@ -360,10 +459,10 @@ export default function ClientHome() {
           </View>
         </ScrollView>
         
-        {/* Modal del código QR */}
+        {/* Modals */}
         {renderQrModal()}
-        {/* Añadir esta línea para mostrar el popup */}
         {renderProfilePopup()}
+        {renderDatePickerModal()}
       </View>
     </View>
   );
@@ -442,7 +541,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
   },
   scrollContent: {
-    paddingBottom: 80, // Espacio para el tab navigator
+    paddingBottom: 80, 
   },
   section: {
     paddingHorizontal: 16,
@@ -485,37 +584,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 10,
   },
-  datesRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
   dateField: {
     flex: 1,
     backgroundColor: COLORS.lightGray,
     borderRadius: 8,
     padding: 12,
-    marginRight: 10,
+    marginRight: 8,
+    height: 70,
   },
   dateContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 4,
   },
   dateText: {
     fontSize: 18,
     fontWeight: 'bold',
     marginLeft: 8,
   },
-  passengersContainer: {
+  datesRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  passengerField: {
+    flex: 1,
     backgroundColor: COLORS.lightGray,
     borderRadius: 8,
     padding: 12,
-    marginBottom: 16,
-  },
-  passengersContent: {
-    flex: 1,
+    height: 70,
   },
   passengerInputContainer: {
     flexDirection: 'row',
@@ -535,6 +632,40 @@ const styles = StyleSheet.create({
     color: COLORS.primaryBlue,
     marginLeft: 4,
   },
+  // Nuevos estilos para el selector de fecha personalizado
+  dateOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  todayOption: {
+    backgroundColor: COLORS.lightGray,
+  },
+  dateOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dayName: {
+    fontSize: 14,
+    color: COLORS.gray,
+    width: 40,
+  },
+  dateOptionDay: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.primaryBlue,
+    marginLeft: 8,
+    width: 30,
+  },
+  dateOptionMonth: {
+    fontSize: 14,
+    color: COLORS.gray,
+  },
+  // Resto de estilos sin cambios
   searchButton: {
     backgroundColor: COLORS.primaryBlue,
     borderRadius: 12,
