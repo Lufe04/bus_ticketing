@@ -9,7 +9,7 @@ import { getDistance } from 'geolib';
 import { addDoc, collection, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from '../../../utils/FirebaseConfig';
 import { useUser } from '../../../context/UserContext';
-import { useBoarding } from '../../../context/BoardingContext';
+import { useBoarding, Boarding } from '../../../context/BoardingContext';
 import { getCoordinates } from '../../../utils/geocode';
 import TripConfirmationModal from '../../../components/TripModal';
 
@@ -26,8 +26,6 @@ Notifications.setNotificationHandler({
 export default function RouteInProgressScreen() {
   const router = useRouter();
   const { userData } = useUser();
-  const { getCurrentBoarding } = useBoarding();
-  const initialBoarding = getCurrentBoarding();
 
   const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -38,20 +36,25 @@ export default function RouteInProgressScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalAction, setModalAction] = useState<'start' | 'arrival' | 'end'>('start');
   const [selectedStopName, setSelectedStopName] = useState('');
-  const [boarding, setBoarding] = useState(initialBoarding);
-  const [notificacionProgramada, setNotificacionProgramada] = useState(false);
+  const notificacionProgramadaRef = useRef(false);
+  const { boardings } = useBoarding();
+  const [boarding, setBoarding] = useState<Boarding | null>(null);
 
-  // Listener al documento del viaje
   useEffect(() => {
-    if (!initialBoarding?.id) return;
-    const boardingRef = doc(db, 'boarding', initialBoarding.id);
-    const unsubscribe = onSnapshot(boardingRef, (docSnap) => {
-      if (docSnap.exists()) {
-        setBoarding({ id: docSnap.id, ...docSnap.data() } as any);
+    if (!boarding && boardings.length > 0) {
+      // Selecciona el primero que esté programado o en curso
+      const selected = boardings.find(b => b.estado === 'programado' || b.estado === 'en_curso');
+      if (selected) {
+        const boardingRef = doc(db, 'boarding', selected.id!);
+        const unsubscribe = onSnapshot(boardingRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setBoarding({ id: docSnap.id, ...docSnap.data() } as Boarding);
+          }
+        });
+        return unsubscribe;
       }
-    });
-    return unsubscribe;
-  }, [initialBoarding?.id]);
+    }
+  }, [boardings]);
 
   // Obtener ubicación actual
   useEffect(() => {
@@ -152,7 +155,7 @@ export default function RouteInProgressScreen() {
   };
 
   useEffect(() => {
-    if (!boarding?.hora_inicio || boarding.estado !== 'programado'|| notificacionProgramada) return;
+    if (!boarding?.hora_inicio || boarding.estado !== 'programado' || notificacionProgramadaRef.current) return;
 
     const now = Date.now();
     const inicio = boarding.hora_inicio.toDate().getTime();
@@ -168,13 +171,14 @@ export default function RouteInProgressScreen() {
           sound: 'default',
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 2, // solo para pruebas. Usa 300 en producción
-        },
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 2, // ✅ para pruebas; usa 300 en producción
+      },
       });
-      setNotificacionProgramada(true);
+
+      notificacionProgramadaRef.current = true; // ✅ Solo se ejecuta una vez
     }
-  }, [boarding, notificacionProgramada]);
+  }, [boarding]);
 
 
 

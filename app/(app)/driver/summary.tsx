@@ -42,23 +42,41 @@ export default function TripSummaryScreen() {
         const historialSnap = await getDocs(collection(db, `boarding/${finalizado.id}/historial_paradas`));
         const historial = historialSnap.docs.map(d => d.data());
 
-        const salida = historial.find(p => p.nombre === finalizado.paradas[0])?.hora_llegada;
-        const llegada = historial.find(p => p.nombre === finalizado.paradas.at(-1))?.hora_llegada;
+        const salidaTS = historial.find(p => p.nombre === finalizado.paradas[0])?.timestamp?.toDate();
+        const llegadaTS = historial.find(p => p.nombre === finalizado.paradas.at(-1))?.timestamp?.toDate();
 
-        if (salida && llegada) {
-          const parseTime = (h: string) => {
-            const [hr, min] = h.split(':').map(Number);
-            return new Date(0, 0, 0, hr, min);
-          };
-          const start = parseTime(salida);
-          const end = parseTime(llegada);
-          const mins = Math.floor((+end - +start) / 60000);
-          const duracionStr = `${Math.floor(mins / 60)}:${String(mins % 60).padStart(2, '0')}`;
+        if (salidaTS && llegadaTS) {
+          const durationMs = llegadaTS.getTime() - salidaTS.getTime();
+          const durationSec = Math.floor(durationMs / 1000);
 
-          setHoraSalida(salida);
-          setHoraLlegada(llegada);
+          const hours = Math.floor(durationSec / 3600);
+          const minutes = Math.floor((durationSec % 3600) / 60);
+          const seconds = durationSec % 60;
+
+          const duracionStr = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+          
+          setHoraSalida(
+            salidaTS.toLocaleTimeString('es-CO', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          );
+
+          setHoraLlegada(
+            llegadaTS.toLocaleTimeString('es-CO', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+            })
+          );
+
           setDuracion(duracionStr);
+        } else {
+          console.warn('⛔ Error al calcular duración: timestamps faltantes');
         }
+
+
 
         // Pasajeros escaneados
         const pasajerosSnap = await getDocs(collection(db, `boarding/${finalizado.id}/pasajeros`));

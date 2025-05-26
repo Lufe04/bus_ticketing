@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import {
-  collection, addDoc, getDocs, query, where, orderBy, Timestamp, getDoc, doc, getFirestore
+  collection, addDoc, getDocs, query, where, orderBy, Timestamp, getDoc, doc, getFirestore,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../utils/FirebaseConfig';
 import { useUser } from './UserContext';
@@ -58,6 +59,7 @@ interface BoardingContextType {
   setSelectedPassenger: (passenger: Passenger | null) => void;
   refreshBoarding: () => Promise<void>; // Añadido para refrescar el boarding actual
   getActiveBoarding: () => Boarding | null; // Añadido para obtener el boarding activo
+  isBoardingLoading: boolean; // ✅ NUEVO
 }
 
 // Crear contexto
@@ -76,6 +78,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPassenger, setSelectedPassenger] = useState<Passenger | null>(null);
+  const [isBoardingLoading, setIsBoardingLoading] = useState(true);
 
   const { userData } = useUser();
 
@@ -235,6 +238,45 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     }
   }, [userData?.id]);
 
+  useEffect(() => {
+    if (!userData?.id) return;
+
+    const q = query(
+      collection(db, 'boarding'),
+      where('conductor', '==', userData.id),
+      orderBy('hora_inicio', 'asc')
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const data: Boarding[] = [];
+
+      for (const docSnap of snapshot.docs) {
+        const boardingData = docSnap.data();
+
+        const [historialSnapshot, pasajerosSnapshot] = await Promise.all([
+          getDocs(collection(docSnap.ref, 'historial_paradas')),
+          getDocs(collection(docSnap.ref, 'pasajeros')),
+        ]);
+
+        const historial: BoardingHistory[] = historialSnapshot.docs.map(doc => doc.data() as BoardingHistory);
+        const pasajeros_lista: Passenger[] = pasajerosSnapshot.docs.map(doc => doc.data() as Passenger);
+
+        data.push({
+          id: docSnap.id,
+          ...boardingData,
+          historial_paradas: historial,
+          pasajeros_lista,
+        } as Boarding);
+      }
+
+      setBoardings(data);
+      setIsBoardingLoading(false); // ✅ Marca fin de carga
+    });
+
+    return () => unsubscribe();
+  }, [userData?.id]);
+
+
   return (
     <BoardingContext.Provider
       value={{
@@ -250,6 +292,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         setSelectedPassenger,
         refreshBoarding, // Añadido para refrescar el boarding actual
         getActiveBoarding, // Añadido para obtener el boarding activo
+        isBoardingLoading, // ✅ NUEVO
       }}
     >
       {children}
