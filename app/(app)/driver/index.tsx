@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
 import { MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import UserMenuModal from '../../../components/UserModal';
@@ -8,10 +8,11 @@ import { Timestamp } from 'firebase/firestore';
 import { useUser } from '../../../context/UserContext';
 
 export default function DriverHomeScreen() {
+  
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
-  const { boardings, getCurrentBoarding } = useBoarding();
-  const { userData } = useUser();
+  const { boardings, getCurrentBoarding,  isBoardingLoading } = useBoarding();
+  const { userData, isLoading: isUserDataLoading } = useUser();
 
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
@@ -25,6 +26,17 @@ export default function DriverHomeScreen() {
   )
   .sort((a, b) => a.hora_inicio.seconds - b.hora_inicio.seconds)
   .slice(0, 5);
+
+    if (isUserDataLoading || isBoardingLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={[styles.loadingContainer]}>
+          <ActivityIndicator size="large" color="#20ADF5" />
+          <Text style={styles.loadingText}>Cargando información...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const formatTime = (timestamp?: Timestamp) => {
     if (!timestamp?.toDate) return '—';
@@ -300,5 +312,16 @@ const styles = StyleSheet.create({
     color: '#20ADF5', 
     marginTop: 2, 
     fontWeight: '600' 
-  }
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F7F8FA',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#000',
+  },
 });
