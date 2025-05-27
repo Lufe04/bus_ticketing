@@ -26,7 +26,8 @@ Notifications.setNotificationHandler({
 export default function RouteInProgressScreen() {
   const router = useRouter();
   const { userData } = useUser();
-
+  const nombreUsuario = userData?.nombre || 'Usuario';
+  const inicial = nombreUsuario.charAt(0).toUpperCase();
   const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [paradaCoords, setParadaCoords] = useState<{ lat: number; lon: number; label: string }[]>([]);
@@ -42,7 +43,6 @@ export default function RouteInProgressScreen() {
 
   useEffect(() => {
     if (!boarding && boardings.length > 0) {
-      // Selecciona el primero que esté programado o en curso
       const selected = boardings.find(b => b.estado === 'programado' || b.estado === 'en_curso');
       if (selected) {
         const boardingRef = doc(db, 'boarding', selected.id!);
@@ -130,7 +130,7 @@ export default function RouteInProgressScreen() {
       });
 
       if (modalAction === 'end') {
-        console.log('📢 Notificación: Califica tu viaje en 3 horas (simulada en 2 seg)');
+        console.log('📢 Notificación: Califica tu viaje en 3 horas (simulada en 2 seg para prueba)');
 
         await Notifications.scheduleNotificationAsync({
           content: {
@@ -140,7 +140,7 @@ export default function RouteInProgressScreen() {
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-            seconds: 2, // en producción: 3 * 60 * 60
+            seconds: 2, 
           },
         });
 
@@ -150,10 +150,10 @@ export default function RouteInProgressScreen() {
     } catch (err) {
       console.error('❌ Error al actualizar el viaje:', err);
     }
-
     setModalVisible(false);
   };
 
+  // Notificación 5 minutos antes del inicio con bandera para solo ejecutar una vez
   useEffect(() => {
     if (!boarding?.hora_inicio || boarding.estado !== 'programado' || notificacionProgramadaRef.current) return;
 
@@ -172,11 +172,11 @@ export default function RouteInProgressScreen() {
         },
         trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        seconds: 2, // ✅ para pruebas; usa 300 en producción
+        seconds: 2, 
       },
       });
 
-      notificacionProgramadaRef.current = true; // ✅ Solo se ejecuta una vez
+      notificacionProgramadaRef.current = true; // bandera 
     }
   }, [boarding]);
 
@@ -197,7 +197,10 @@ export default function RouteInProgressScreen() {
           },
           3000
         );
+
+        // Simular movimiento del conductor en la ruta por 3 segundos
         await new Promise(res => setTimeout(res, 3000));
+
         setLocation({
           coords: {
             latitude: stop.lat,
@@ -211,6 +214,8 @@ export default function RouteInProgressScreen() {
           mocked: true,
           timestamp: Date.now(),
         });
+
+        // Esperar 10 segundos antes de pasar a la siguiente parada
         await new Promise(res => setTimeout(res, 10000));
       }
     };
@@ -225,10 +230,11 @@ export default function RouteInProgressScreen() {
           <Text style={styles.headerTitle}>Ruta en curso</Text>
         </View>
         <View style={styles.userCircle}>
-          <Text style={styles.userInitial}>{userData?.nombre?.[0]?.toUpperCase() || 'U'}</Text>
+          <Text style={styles.userInitial}>{inicial}</Text>
         </View>
       </View>
 
+      {/* Mapa con ubicación actual y simulacion de movimiento por paradas*/}
       <View style={styles.mapContainer}>
         {location ? (
           <MapView
@@ -252,6 +258,7 @@ export default function RouteInProgressScreen() {
         )}
       </View>
 
+      {/* Información de la ruta */}
       <View style={styles.infoCard}>
         <View style={styles.routeRow}>
           <Text style={styles.routeCity}>{boarding?.desde ?? '—'}</Text>
@@ -268,6 +275,7 @@ export default function RouteInProgressScreen() {
         </View>
       </View>
 
+      {/* Botones*/}
       <View style={styles.actionsContainer}>
         <TouchableOpacity
           disabled={!canStartTrip}
@@ -280,8 +288,8 @@ export default function RouteInProgressScreen() {
         >
           <MaterialIcons name="directions-bus" size={38} color="#fff" />
           <Text style={styles.actionText}>Iniciar</Text>
+          <Text style={styles.actionText}>Viaje</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           disabled={!canMarkStop}
           style={[styles.actionButton, !canMarkStop && { backgroundColor: '#ccc' }]}
@@ -293,9 +301,9 @@ export default function RouteInProgressScreen() {
           }}
         >
           <MaterialIcons name="my-location" size={38} color="#fff" />
+          <Text style={styles.actionText}>Marcar</Text>
           <Text style={styles.actionText}>Parada</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           disabled={!canEndTrip}
           style={[styles.actionButton, !canEndTrip && { backgroundColor: '#ccc' }]}
@@ -307,6 +315,7 @@ export default function RouteInProgressScreen() {
         >
           <MaterialCommunityIcons name="flag-outline" size={38} color="#fff" />
           <Text style={styles.actionText}>Finalizar</Text>
+          <Text style={styles.actionText}>Viaje</Text>
         </TouchableOpacity>
       </View>
 
@@ -322,7 +331,10 @@ export default function RouteInProgressScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   header: {
     backgroundColor: '#08173B',
     padding: 20,
@@ -332,8 +344,16 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
+  headerLeft: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 10 
+  },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 22, 
+    fontWeight: '400' 
+  },
   userCircle: {
     backgroundColor: '#FFFFFF',
     width: 50,
@@ -342,9 +362,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
-  mapContainer: { height: 250 },
-  map: { flex: 1 },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
+  mapContainer: { 
+    height: 250 
+  },
+  map: { 
+    flex: 1 
+  },
   infoCard: {
     backgroundColor: '#fff',
     margin: 16,
@@ -353,11 +381,28 @@ const styles = StyleSheet.create({
     borderColor: '#D9D9D9',
     borderWidth: 1,
   },
-  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 },
-  routeCity: { fontWeight: '700', fontSize: 20 },
-  routeStops: { gap: 10 },
-  stopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stopText: { fontSize: 18, color: '#000' },
+  routeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 10, 
+    gap: 6 
+  },
+  routeCity: { 
+    fontWeight: '700', 
+    fontSize: 20 
+  },
+  routeStops: { 
+    gap: 10 
+  },
+  stopRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 8 
+  },
+  stopText: { 
+    fontSize: 18, 
+    color: '#000' 
+  },
   actionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',

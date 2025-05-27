@@ -1,12 +1,8 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import {
-  collection, addDoc, getDocs, query, where, orderBy, Timestamp, getDoc, doc, getFirestore,
-  onSnapshot
-} from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, orderBy, Timestamp, getDoc, doc, onSnapshot} from 'firebase/firestore';
 import { db } from '../utils/FirebaseConfig';
 import { useUser } from './UserContext';
 
-// Tipos
 export interface BoardingHistory {
   nombre: string;
   hora_llegada: Timestamp;
@@ -55,11 +51,11 @@ interface BoardingContextType {
   getCurrentBoarding: () => Boarding | null;
   clearError: () => void;
   getCompletedBoardingsGrouped: (month?: number, year?: number) => Record<string, RouteEntry[]>;
-  selectedPassenger: Passenger | null; // ✅ NUEVO
+  selectedPassenger: Passenger | null; 
   setSelectedPassenger: (passenger: Passenger | null) => void;
   refreshBoarding: () => Promise<void>; // Añadido para refrescar el boarding actual
   getActiveBoarding: () => Boarding | null; // Añadido para obtener el boarding activo
-  isBoardingLoading: boolean; // ✅ NUEVO
+  isBoardingLoading: boolean; 
 }
 
 // Crear contexto
@@ -79,7 +75,6 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [selectedPassenger, setSelectedPassenger] = useState<Passenger | null>(null);
   const [isBoardingLoading, setIsBoardingLoading] = useState(true);
-
   const { userData } = useUser();
 
   const getBoardings = async () => {
@@ -91,35 +86,29 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         setBoardings([]);
         return;
       }
-
       const q = query(
         collection(db, 'boarding'), 
         where('conductor', '==', userData.id),
         orderBy('hora_inicio', 'asc')
       );
-
       const snapshot = await getDocs(q);
-
       const data: Boarding[] = [];
 
       for (const docSnap of snapshot.docs) {
-  const boardingData = docSnap.data();
-
-  const [historialSnapshot, pasajerosSnapshot] = await Promise.all([
-      getDocs(collection(docSnap.ref, 'historial_paradas')),
-      getDocs(collection(docSnap.ref, 'pasajeros')),
-    ]);
-
-    const historial: BoardingHistory[] = historialSnapshot.docs.map(doc => doc.data() as BoardingHistory);
-    const pasajeros_lista: Passenger[] = pasajerosSnapshot.docs.map(doc => doc.data() as Passenger);
-
-    data.push({
-      id: docSnap.id,
-      ...boardingData,
-      historial_paradas: historial,
-      pasajeros_lista,
-    } as Boarding);
-  }
+        const boardingData = docSnap.data();
+        const [historialSnapshot, pasajerosSnapshot] = await Promise.all([
+          getDocs(collection(docSnap.ref, 'historial_paradas')),
+          getDocs(collection(docSnap.ref, 'pasajeros')),
+        ]);
+        const historial: BoardingHistory[] = historialSnapshot.docs.map(doc => doc.data() as BoardingHistory);
+        const pasajeros_lista: Passenger[] = pasajerosSnapshot.docs.map(doc => doc.data() as Passenger);
+        data.push({
+          id: docSnap.id,
+          ...boardingData,
+          historial_paradas: historial,
+          pasajeros_lista,
+        } as Boarding);
+      }
       setBoardings(data);
     } catch (err) {
       console.error('Error fetching boardings:', err);
@@ -131,14 +120,12 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
   const getCurrentBoarding = (): Boarding | null => {
     const now = Timestamp.now();
-
     const upcoming = boardings
       .filter(b => b.estado === 'programado' && b.hora_inicio?.seconds > now.seconds)
       .sort((a, b) => a.hora_inicio.seconds - b.hora_inicio.seconds);
 
     return upcoming.length > 0 ? upcoming[0] : null;
   };
-
   const getActiveBoarding = (): Boarding | null => {
     return boardings.find(b => b.estado === 'en_curso') || null;
   };
@@ -159,7 +146,6 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
   const addBoarding = async (data: Omit<Boarding, 'id'>) => {
     try {
       await addDoc(collection(db, 'boardings'), data);
@@ -170,13 +156,9 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getCompletedBoardingsGrouped = (
-    month?: number,
-    year?: number
-  ): Record<string, RouteEntry[]> => {
+  const getCompletedBoardingsGrouped = ( month?: number, year?: number): Record<string, RouteEntry[]> => {
     const grouped: Record<string, RouteEntry[]> = {};
     const now = new Date();
-
     boardings
       .filter((b) => {
         const date = b.hora_inicio.toDate();
@@ -213,7 +195,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         } else if (b.estado === 'programado' && horaFin < now) {
           status = 'no_realizado';
         } else {
-          return; // Excluir viajes programados futuros
+          return; 
         }
 
         if (!grouped[dateKey]) grouped[dateKey] = [];
@@ -232,7 +214,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
   const clearError = () => setError(null);
 
   useEffect(() => {
-    console.log('🧑 userData al cargar boardings:', userData); // 👈 AGREGA ESTA LÍNEA
+    console.log('UserData al cargar boardings:', userData); 
     if (userData?.id) {
       getBoardings();
     }
@@ -240,7 +222,6 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!userData?.id) return;
-
     const q = query(
       collection(db, 'boarding'),
       where('conductor', '==', userData.id),
@@ -249,10 +230,8 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const data: Boarding[] = [];
-
       for (const docSnap of snapshot.docs) {
         const boardingData = docSnap.data();
-
         const [historialSnapshot, pasajerosSnapshot] = await Promise.all([
           getDocs(collection(docSnap.ref, 'historial_paradas')),
           getDocs(collection(docSnap.ref, 'pasajeros')),
@@ -260,7 +239,6 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
 
         const historial: BoardingHistory[] = historialSnapshot.docs.map(doc => doc.data() as BoardingHistory);
         const pasajeros_lista: Passenger[] = pasajerosSnapshot.docs.map(doc => doc.data() as Passenger);
-
         data.push({
           id: docSnap.id,
           ...boardingData,
@@ -270,7 +248,7 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
       }
 
       setBoardings(data);
-      setIsBoardingLoading(false); // ✅ Marca fin de carga
+      setIsBoardingLoading(false);
     });
 
     return () => unsubscribe();
@@ -288,11 +266,11 @@ export function BoardingProvider({ children }: { children: ReactNode }) {
         getCurrentBoarding,
         clearError,
         getCompletedBoardingsGrouped,
-        selectedPassenger, // ✅ NUEVO
+        selectedPassenger,
         setSelectedPassenger,
-        refreshBoarding, // Añadido para refrescar el boarding actual
-        getActiveBoarding, // Añadido para obtener el boarding activo
-        isBoardingLoading, // ✅ NUEVO
+        refreshBoarding, 
+        getActiveBoarding, 
+        isBoardingLoading, 
       }}
     >
       {children}

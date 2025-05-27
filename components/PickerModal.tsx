@@ -10,11 +10,11 @@ interface ModalPickerProps {
 }
 
 const months = ['ENER', 'FEBR', 'MARZ', 'ABRL', 'MAY', 'JUN', 'JUL', 'AGOS', 'SEPT', 'OCT', 'NOV', 'DEC'];
-const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i); // Ej: 2020 a 2030
+const years = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 5 + i); 
 
 export default function ModalPicker({ visible, type, selectedValue, onSelect, onClose }: ModalPickerProps) {
   const data = type === 'month' ? months.map((m, i) => ({ label: m, value: i + 1 })) : years.map(y => ({ label: `${y}`, value: y }));
-
+  
   return (
     <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
       <View style={styles.overlay}>

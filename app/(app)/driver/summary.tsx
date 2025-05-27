@@ -17,6 +17,7 @@ export default function TripSummaryScreen() {
   const [pasajerosCount, setPasajerosCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Obtener el boarding acabado de finalizar
   useEffect(() => {
     const unsubscribe = onSnapshot(
       query(collection(db, 'boarding'), where('estado', '==', 'finalizado')),
@@ -38,21 +39,18 @@ export default function TripSummaryScreen() {
         }
         setBoarding(finalizado);
 
-        // Historial
+        //  Buscar en el historial de paradas
         const historialSnap = await getDocs(collection(db, `boarding/${finalizado.id}/historial_paradas`));
         const historial = historialSnap.docs.map(d => d.data());
-
         const salidaTS = historial.find(p => p.nombre === finalizado.paradas[0])?.timestamp?.toDate();
         const llegadaTS = historial.find(p => p.nombre === finalizado.paradas.at(-1))?.timestamp?.toDate();
 
         if (salidaTS && llegadaTS) {
           const durationMs = llegadaTS.getTime() - salidaTS.getTime();
           const durationSec = Math.floor(durationMs / 1000);
-
           const hours = Math.floor(durationSec / 3600);
           const minutes = Math.floor((durationSec % 3600) / 60);
           const seconds = durationSec % 60;
-
           const duracionStr = `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
           
           setHoraSalida(
@@ -62,7 +60,6 @@ export default function TripSummaryScreen() {
               second: '2-digit',
             })
           );
-
           setHoraLlegada(
             llegadaTS.toLocaleTimeString('es-CO', {
               hour: '2-digit',
@@ -70,15 +67,12 @@ export default function TripSummaryScreen() {
               second: '2-digit',
             })
           );
-
           setDuracion(duracionStr);
         } else {
-          console.warn('⛔ Error al calcular duración: timestamps faltantes');
+          console.warn('Error al calcular duración: timestamps faltantes');
         }
 
-
-
-        // Pasajeros escaneados
+        // Buscar número de pasajeros escaneados
         const pasajerosSnap = await getDocs(collection(db, `boarding/${finalizado.id}/pasajeros`));
         const escaneados = pasajerosSnap.docs.filter(d => d.data().escaneado === true).length;
         setPasajerosCount(escaneados);
@@ -89,6 +83,7 @@ export default function TripSummaryScreen() {
     return () => unsubscribe();
   }, []);
 
+  // Si aún está cargando, mostrar un indicador de carga y si no se encontro el boarding, mostrar un mensaje
   if (loading) {
     return (
       <View style={styles.container}>
@@ -96,7 +91,6 @@ export default function TripSummaryScreen() {
       </View>
     );
   }
-
   if (!boarding) {
     return (
       <View style={styles.container}>
@@ -128,7 +122,6 @@ export default function TripSummaryScreen() {
           style={{ width: 150, height: 150 }}
         />
         <Text style={styles.successText}>Viaje Finalizado</Text>
-
         <View style={styles.left}>
           <View style={styles.routeRow}>
             <Text style={styles.routeText}>{boarding.desde}</Text>
@@ -137,7 +130,6 @@ export default function TripSummaryScreen() {
           </View>
           <Text style={styles.dateText}>{fecha}</Text>
         </View>
-
         <Text style={styles.sectionTitle}>Resumen</Text>
         <View style={styles.summaryCard}>
           <View style={styles.rowBetween}><Text style={styles.label}>Hora de Salida</Text><Text style={styles.value}>{horaSalida}</Text></View>
@@ -157,7 +149,10 @@ export default function TripSummaryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F7F8FA' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F7F8FA' 
+  },
   header: {
     backgroundColor: '#08173B',
     padding: 20,
@@ -167,7 +162,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 22, fontWeight: '400' },
+  headerTitle: { 
+    color: '#FFFFFF', 
+    fontSize: 22, 
+    fontWeight: '400' 
+  },
   userCircle: {
     backgroundColor: '#FFFFFF',
     width: 50,
@@ -176,19 +175,91 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userInitial: { color: '#08173B', fontWeight: '500', fontSize: 32 },
-  content: { alignItems: 'center', padding: 20, paddingTop: 0 },
-  successText: { fontSize: 32, fontWeight: '700', marginBottom: 20, color: '#000' },
-  routeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 0, gap: 12 },
-  left: { alignItems: 'flex-start', width: '100%' },
-  routeText: { fontSize: 25, fontWeight: '600', marginBottom: 4 },
-  dateText: { fontSize: 20, color: '#989898', marginBottom: 30, fontWeight: '400' },
-  sectionTitle: { fontSize: 24, fontWeight: '700', color: '#000', alignSelf: 'flex-start', marginBottom: 15 },
-  summaryCard: { backgroundColor: '#fff', borderRadius: 16, borderColor: '#D9D9D9', borderWidth: 1, width: '100%', padding: 16, gap: 12 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between' },
-  label: { fontSize: 20, fontWeight: '700', color: '#000' },
-  value: { fontSize: 15, fontWeight: '400', color: '#000' },
-  footer: { position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center' },
-  finalButton: { backgroundColor: '#08173B', paddingVertical: 12, paddingHorizontal: 40, borderRadius: 14, width: '80%', alignItems: 'center' },
-  finalButtonText: { color: '#FFFFFF', fontWeight: '700', fontSize: 18 },
+  userInitial: { 
+    color: '#08173B', 
+    fontWeight: '500', 
+    fontSize: 32 
+  },
+  content: { 
+    alignItems: 'center', 
+    padding: 20, 
+    paddingTop: 0 
+  },
+  successText: { 
+    fontSize: 32, 
+    fontWeight: '700', 
+    marginBottom: 20, 
+    color: '#000' 
+  },
+  routeRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 0, 
+    gap: 12 
+  },
+  left: { 
+    alignItems: 'flex-start', 
+    width: '100%' 
+  },
+  routeText: { 
+    fontSize: 25, 
+    fontWeight: '600', 
+    marginBottom: 4 
+  },
+  dateText: { 
+    fontSize: 20, 
+    color: '#989898', 
+    marginBottom: 30, 
+    fontWeight: '400' 
+  },
+  sectionTitle: { 
+    fontSize: 24, 
+    fontWeight: '700', 
+    color: '#000', 
+    alignSelf: 'flex-start', 
+    marginBottom: 15 
+  },
+  summaryCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: 16, 
+    borderColor: '#D9D9D9', 
+    borderWidth: 1, 
+    width: '100%', 
+    padding: 16, 
+    gap: 12 
+  },
+  rowBetween: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between' 
+  },
+  label: { 
+    fontSize: 20, 
+    fontWeight: '700', 
+    color: '#000' 
+  },
+  value: { 
+    fontSize: 15, 
+    fontWeight: '400', 
+    color: '#000' 
+  },
+  footer: { 
+    position: 'absolute', 
+    bottom: 30, 
+    left: 0, 
+    right: 0, 
+    alignItems: 'center' 
+  },
+  finalButton: { 
+    backgroundColor: '#08173B', 
+    paddingVertical: 12, 
+    paddingHorizontal: 40, 
+    borderRadius: 14, 
+    width: '80%', 
+    alignItems: 'center' 
+  },
+  finalButtonText: { 
+    color: '#FFFFFF', 
+    fontWeight: '700', 
+    fontSize: 18 
+  },
 });

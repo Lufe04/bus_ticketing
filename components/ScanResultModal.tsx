@@ -17,7 +17,6 @@ export default function ScanResultModal({ visible, success, passengerId }: Props
     if (visible && animationRef.current) {
       animationRef.current.play();
     }
-
     if (visible) {
       const timeout = setTimeout(() => {
         if (success && passengerId) {
@@ -48,13 +47,11 @@ export default function ScanResultModal({ visible, success, passengerId }: Props
             autoPlay
             style={{ width: 150, height: 150 }}
           />
-
           <Text style={styles.title}>
             {success
               ? 'Pasaje Escaneado Correctamente'
               : 'Pasaje Escaneado Inválido'}
           </Text>
-
           {!success && (
             <Text style={styles.subtitle}>
               Asegúrate de que el pasaje corresponde a esta ruta.

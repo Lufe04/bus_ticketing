@@ -7,8 +7,7 @@ import { useRouter } from 'expo-router';
 
 export default function UserMenuModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const router = useRouter();
-  const { logout } = useAuth(); // accede a logout
-
+  const { logout } = useAuth(); 
   const handleLogout = async () => {
     try {
       await logout();
@@ -47,8 +46,6 @@ function MenuItem({ icon, label, labelStyle = {}, onPress }: { icon: React.React
     </TouchableOpacity>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   overlay: {

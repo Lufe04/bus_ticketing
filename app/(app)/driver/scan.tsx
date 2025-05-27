@@ -7,7 +7,6 @@ import UserMenuModal from '../../../components/UserModal';
 import { useUser } from '../../../context/UserContext';
 import { useRouter } from 'expo-router';
 import { useBoarding } from '../../../context/BoardingContext';
-import { Passenger } from '../../../context/BoardingContext';
 import { collection, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '@/utils/FirebaseConfig';
 
@@ -25,7 +24,7 @@ export default function ScanScreen() {
   const [passengerIdScanned, setPassengerIdScanned] = useState<string | null>(null);
 
   const handleScanResult = async (userId: string) => {
-      console.log("🔍 Escaneando ID de usuario:", userId);
+      console.log("Escaneando ID de usuario:", userId);
       const currentBoarding = getCurrentBoarding();
       if (!currentBoarding || !currentBoarding.id) {
         console.warn("⚠️ No hay ruta activa");
@@ -42,14 +41,13 @@ export default function ScanScreen() {
         if (!snapshot.empty) {
           const doc = snapshot.docs[0];
           const data = doc.data();
-
           if (data.escaneado === true) {
             console.warn('⚠️ El pasaje ya fue escaneado anteriormente');
             setPassengerIdScanned(null);
             setIsSuccess(false);
           } else {
             await updateDoc(doc.ref, { escaneado: true });
-            await getBoardings(); // refrescar estado global
+            await getBoardings(); 
             console.log('✅ Pasajero validado y actualizado');
             setPassengerIdScanned(userId);
             setIsSuccess(true);
@@ -63,7 +61,6 @@ export default function ScanScreen() {
         console.error('❌ Error al validar pasajero:', error);
         setIsSuccess(false);
       }
-
       setModalVisible(true);
     };
 

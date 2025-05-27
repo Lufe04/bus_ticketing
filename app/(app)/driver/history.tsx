@@ -12,16 +12,12 @@ export default function DriverHistoryScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [pickerType, setPickerType] = useState<'month' | 'year'>('month');
-
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
   const { userData } = useUser();
   const { getCompletedBoardingsGrouped } = useBoarding();
-
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
-
   const groupedBoardings = getCompletedBoardingsGrouped(selectedMonth, selectedYear);
   const completedRoutes = Object.entries(groupedBoardings).map(([date, routes]) => ({
     date,

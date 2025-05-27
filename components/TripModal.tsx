@@ -11,13 +11,7 @@ interface TripConfirmationModalProps {
   stopName?: string;
 }
 
-const TripConfirmationModal: React.FC<TripConfirmationModalProps> = ({
-  visible,
-  onCancel,
-  onConfirm,
-  action,
-  stopName = '',
-}) => {
+const TripConfirmationModal: React.FC<TripConfirmationModalProps> = ({ visible, onCancel, onConfirm, action,stopName = ''}) => {
   let title = '';
   let subtitle = '';
 
@@ -55,7 +49,7 @@ const TripConfirmationModal: React.FC<TripConfirmationModalProps> = ({
               <Text style={[styles.buttonText, styles.cancelText]}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={onConfirm} style={[styles.button, styles.confirmButton]}>
-              <Text style={styles.buttonText}>Confirmar</Text>
+              <Text style={styles.buttonText}>Si. Llegue</Text>
             </TouchableOpacity>
           </View>
         </View>

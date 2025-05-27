@@ -8,16 +8,12 @@ import { Timestamp } from 'firebase/firestore';
 import { useUser } from '../../../context/UserContext';
 
 export default function DriverHomeScreen() {
-  
   const router = useRouter();
   const [menuVisible, setMenuVisible] = useState(false);
   const { boardings, getCurrentBoarding,  isBoardingLoading } = useBoarding();
   const { userData, isLoading: isUserDataLoading } = useUser();
-
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
-
-
   const currentBoarding = getCurrentBoarding();
   const nextBoardings = boardings.filter(b =>
     b.estado === 'programado' &&
@@ -27,7 +23,7 @@ export default function DriverHomeScreen() {
   .sort((a, b) => a.hora_inicio.seconds - b.hora_inicio.seconds)
   .slice(0, 5);
 
-    if (isUserDataLoading || isBoardingLoading) {
+  if (isUserDataLoading || isBoardingLoading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={[styles.loadingContainer]}>
@@ -47,7 +43,6 @@ export default function DriverHomeScreen() {
   const formatDateLabel = (timestamp: Timestamp) => {
     const date = timestamp.toDate();
     const now = new Date();
-
     const isToday = date.toDateString() === now.toDateString();
     const time = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
@@ -65,7 +60,6 @@ export default function DriverHomeScreen() {
   const isWithinBoardingWindow = (timestamp: Timestamp) => {
     const now = new Date();
     const target = timestamp.toDate();
-
     const oneHourBefore = new Date(target.getTime() - 60 * 60 * 1000);
     const oneHourAfter = new Date(target.getTime() + 60 * 60 * 1000);
 
@@ -110,7 +104,7 @@ export default function DriverHomeScreen() {
             <TouchableOpacity
               style={[styles.startButton, !isWithinBoardingWindow(currentBoarding.hora_inicio) && { backgroundColor: '#ccc' }]}
               onPress={() => router.navigate('/driver/route')}
-              //disabled={!isWithinBoardingWindow(currentBoarding.hora_inicio)}
+              disabled={!isWithinBoardingWindow(currentBoarding.hora_inicio)}
             >
               <Text style={styles.startButtonText}>Iniciar Ruta</Text>
             </TouchableOpacity>
@@ -118,7 +112,6 @@ export default function DriverHomeScreen() {
         )}
 
         <Text style={styles.sectionTitle2}>Tus próximas rutas</Text>
-
         {nextBoardings.map((item, idx) => (
           <View key={idx} style={styles.routeBoxInactive}>
             <View style={styles.routeBoxRow}>

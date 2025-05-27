@@ -12,10 +12,8 @@ export default function RouteInfoScreen() {
   const { userData } = useUser();
   const boarding = getCurrentBoarding();
   const [menuVisible, setMenuVisible] = useState(false);
-
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
-
   const scannedCount = boarding?.pasajeros_lista?.filter(p => p.escaneado).length || 0;
   const totalPasajeros = boarding?.pasajeros || 0;
   const isRouteStarted = boarding?.estado === 'en_curso';
@@ -43,7 +41,6 @@ export default function RouteInfoScreen() {
       </View>
 
       <Text style={styles.sectionTitle}>Ruta en Curso</Text>
-
       {boarding && (
         <View style={styles.card}>
           <View style={styles.routeRow}>
@@ -51,7 +48,6 @@ export default function RouteInfoScreen() {
             <MaterialIcons name="east" size={21} color="#000" />
             <Text style={styles.routeCity}>{boarding.hasta}</Text>
           </View>
-
           <View style={styles.routeDetails}>
             <View style={styles.detailItem}>
               <MaterialCommunityIcons name="timer-outline" size={20} color="#989898" />
@@ -66,7 +62,6 @@ export default function RouteInfoScreen() {
               <Text style={styles.detailText}>{totalPasajeros} Pasajeros</Text>
             </View>
           </View>
-
           <View style={styles.divider} />
           <Text style={styles.stopsTitle}>Paradas</Text>
           <View style={styles.stopList}>
@@ -81,15 +76,14 @@ export default function RouteInfoScreen() {
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
           style={[styles.scanButton, disableScanButton && { backgroundColor: '#ccc' }]}
-          //disabled={disableScanButton}
+          disabled={disableScanButton}
           onPress={() => router.push('/driver/scan')}
         >
           <Text style={styles.scanButtonText}>Escanear Pasajes</Text>
         </TouchableOpacity>
-
         <TouchableOpacity
           style={[styles.startButton, disableStartButton && { backgroundColor: '#ccc' }]}
-          //disabled={disableStartButton}
+          disabled={disableStartButton}
           onPress={() => router.push('/driver/routeMap')}
         >
           <Text style={styles.startButtonText}>
