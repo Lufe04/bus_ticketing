@@ -5,13 +5,12 @@ export const getCoordinates = async (address: string): Promise<{ lat: number; lo
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'SpotReserveApp/1.0 (contacto@tuemail.com)', // Reemplaza por algo tuyo si deseas
+        'User-Agent': 'SpotReserveApp/1.0 (contacto@tuemail.com)', 
         'Accept': 'application/json'
       }
     });
 
     const data = await response.json();
-
     if (data.length > 0) {
       return {
         lat: parseFloat(data[0].lat),
@@ -21,7 +20,7 @@ export const getCoordinates = async (address: string): Promise<{ lat: number; lo
 
     return null;
   } catch (error) {
-    console.error(`❌ Error al buscar coordenadas para ${address}:`, error);
+    console.error(`Error al buscar coordenadas para ${address}:`, error);
     return null;
   }
 };

@@ -6,10 +6,9 @@ import { useBoarding } from '../../../context/BoardingContext';
 export default function BoardingSummaryScreen() {
   const router = useRouter();
   const { passengerId } = useLocalSearchParams();
-  console.log('🧾 passengerId recibido en Summary:', passengerId)
+  console.log('PassengerId recibido en Summary:', passengerId)
   const { getCurrentBoarding } = useBoarding();
   const boarding = getCurrentBoarding();
-
   const passenger = boarding?.pasajeros_lista?.find(p => p.idUsuario === passengerId);
   const escaneados = boarding?.pasajeros_lista?.filter(p => p.escaneado === true).length || 0;
   const sinEscanear = boarding?.pasajeros_lista?.filter(p => p.escaneado === false).length || 0;

@@ -3,7 +3,6 @@ import { View, Modal, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Feather } from '@expo/vector-icons';
 
-
 interface QrScannerModalProps {
   isVisible: boolean;
   onClose: () => void;

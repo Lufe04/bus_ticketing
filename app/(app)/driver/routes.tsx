@@ -27,13 +27,10 @@ export default function DriverRoutesScreen() {
   const { userData } = useUser();
   const { boardings } = useBoarding();
   const [menuVisible, setMenuVisible] = useState(false);
-
   const nombreUsuario = userData?.nombre || 'Usuario';
   const inicial = nombreUsuario.charAt(0).toUpperCase();
-
   const todayDate = toZonedTime(new Date(), 'America/Bogota');
   const todayStr = format(todayDate, 'yyyy-MM-dd');
-
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   // Fechas marcadas en el calendario
@@ -41,7 +38,6 @@ export default function DriverRoutesScreen() {
 
   boardings.forEach(b => {
     const dateKey = format(b.hora_inicio.toDate(), 'yyyy-MM-dd');
-    // Si ya estaba marcado por otra ruta, no lo sobrescribimos
     if (!markedDates[dateKey]) {
       markedDates[dateKey] = {
         customStyles: {
@@ -145,7 +141,6 @@ export default function DriverRoutesScreen() {
         <Text style={styles.dateText}>
           {localParsedDate.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })}
         </Text>
-
         {selectedRoutes.map((route, idx) => (
           <View key={idx} style={styles.routeCard}>
             <MaterialIcons name="date-range" size={24} color='rgba(50, 50, 50, 0.8)' style={{ marginRight: 8 }} />
@@ -161,7 +156,6 @@ export default function DriverRoutesScreen() {
         )}
       </ScrollView>
 
-      {/* Navbar */}
       <View style={styles.navbar}>
         <View style={styles.navItem}>
           <MaterialCommunityIcons name="text-box-outline" size={40} style={styles.navbarIconActive} />
